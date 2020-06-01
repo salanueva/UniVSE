@@ -7,6 +7,7 @@ The code is divided in 3 different folders:
   * create_corpus.py: Example of how to create your own corpus given a list of sentences and GloVe embeddings found here (https://nlp.stanford.edu/projects/glove/).
   * eval_retrieval.py: Evaluates a trained UniVSE model in image/text-retrieval. Computes recall values using k={1,5,10}.
   * eval_vSTS.py: Evaluates a trained UniVSE model in vSTS task (https://arxiv.org/abs/2004.01894).
+  * train.py: Train UniVSE model and creates plots of both loss and recall values on each epoch.
 * Helper: you can find some functions that load vSTS dataset, compute recall values on image/text-retrieval and parse sentences to extract objects, attributes and relations.
 * Models: VSE++ and UniVSE models are implemented in this folder. Inside models/univse folder 3 files can be found:
   * corpus.py: implementation of the class that creates and stores embeddings of the vocabulary that will be used in UniVSE model.
