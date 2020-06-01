@@ -1,4 +1,4 @@
-# UniVSE
+# UniVSE (Work In Progress)
 
 UniVSE implementation on Python3 using PyTorch. This implementation has been written following its original paper https://arxiv.org/abs/1904.05521v1. Check its first appendix for more details about the implementation... The code is runnable but doesn't work as intended, as there is a bug that affects the training phase of the model.
 
