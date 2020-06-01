@@ -270,13 +270,13 @@ def main():
                     rt = itr.i2t(img_embs, cap_embs, measure='cosine', return_ranks=False)
                     ri = itr.t2i(img_embs, cap_embs, measure='cosine', return_ranks=False)
 
-                    ir_r1.extend(ri[0])
-                    ir_r5.extend(ri[1])
-                    ir_r10.extend(ri[2])
+                    ir_r1.extend([ri[0]])
+                    ir_r5.extend([ri[1]])
+                    ir_r10.extend([ri[2]])
 
-                    tr_r1.extend(rt[0])
-                    tr_r5.extend(rt[1])
-                    tr_r10.extend(rt[2])
+                    tr_r1.extend([rt[0]])
+                    tr_r5.extend([rt[1]])
+                    tr_r10.extend([rt[2]])
 
                 # deep copy the model
                 if running_loss < best_loss:

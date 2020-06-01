@@ -31,7 +31,7 @@ def encode_data(model, data_loader):
     # numpy array to keep all the embeddings
     img_embeddings = None
     cap_embeddings = None
-    for i, (images, captions) in tqdm(enumerate(data_loader), desc="Extract embeddings"):
+    for i, (images, captions) in tqdm(enumerate(data_loader), desc="Compute embeddings for R@k", leave=False):
 
         # compute the embeddings
         images = images.unsqueeze(0).to(device)
@@ -47,8 +47,8 @@ def encode_data(model, data_loader):
 
         aux_count = count + 5
 
-        if cap_emb.size(0) != 5:
-            print(i, cap_emb.size(0))
+        # if cap_emb.size(0) != 5:
+        #    print(i, cap_emb.size(0))
 
         # preserve the embeddings by copying from gpu and converting to numpy
         img_embeddings[count:aux_count] = img_emb.data.cpu().numpy().copy()
@@ -144,7 +144,7 @@ def i2t(images, captions, npts=None, measure='cosine', return_ranks=False):
     """
     if npts is None:
         npts = int(images.shape[0] / 5)
-        print(npts)
+
     index_list = []
 
     ranks = np.zeros(npts)
@@ -178,9 +178,6 @@ def i2t(images, captions, npts=None, measure='cosine', return_ranks=False):
         ranks[index] = rank
         top1[index] = inds[0]
 
-    print(ranks)
-    print(top1)
-
     # Compute metrics
     r1 = 100.0 * len(np.where(ranks < 1)[0]) / len(ranks)
     r5 = 100.0 * len(np.where(ranks < 5)[0]) / len(ranks)
@@ -201,7 +198,7 @@ def t2i(images, captions, npts=None, measure='cosine', return_ranks=False):
     """
     if npts is None:
         npts = int(images.shape[0] / 5)
-        print(npts)
+
     ims = np.array([images[i] for i in range(0, len(images), 5)])
 
     ranks = np.zeros(5 * npts)
@@ -229,9 +226,6 @@ def t2i(images, captions, npts=None, measure='cosine', return_ranks=False):
             inds[i] = np.argsort(d[i])[::-1]
             ranks[5 * index + i] = np.where(inds[i] == index)[0][0]
             top1[5 * index + i] = inds[i][0]
-
-    print(ranks)
-    print(top1)
 
     # Compute metrics
     r1 = 100.0 * len(np.where(ranks < 1)[0]) / len(ranks)
