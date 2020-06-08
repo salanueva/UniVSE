@@ -12,8 +12,8 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from models.univse import loss
-from models.univse import corpus
+from models.simplified_univse import loss
+from models.simplified_univse import corpus
 
 
 # Helper Function
@@ -151,7 +151,7 @@ class CustomResNet152(nn.Module):
         features = features.permute((0, 2, 1))  # (bs, 1024, 49) -> (bs, 49, 1024)
         images = f.normalize(images, dim=1, p=2)
 
-        return images, features
+        return images
 
 
 class UniVSE(nn.Module):
@@ -307,116 +307,24 @@ class UniVSE(nn.Module):
         # FORWARD PASS
         # IMAGES
         images = images.to(self.device)
-        embeddings["img_emb"], embeddings["img_feat_emb"] = self.image_encoder(images)
+        embeddings["img_emb"] = self.image_encoder(images)
 
         # TEXT
         # Extract ids of tokens from each sentence, including negative samples
-        components = self.vocabulary_encoder.get_components(captions)
+        components = self.vocabulary_encoder.get_embeddings(captions)
         # Get embeddings from those ids with the VocabularyEncoder
         embeddings["sent_emb"] = [
             self.vocabulary_encoder(word_ids).to(self.device)
             for word_ids in components["words"]
         ]
-        # FIXME """
-        embeddings["obj_emb"] = [
-            self.vocabulary_encoder(obj_ids).to(self.device)
-            if obj_ids else None
-            for obj_ids in components["obj"]
-        ]
-        embeddings["attr_emb"] = [
-            self.vocabulary_encoder(attr_ids).to(self.device)
-            if attr_ids else None
-            for attr_ids in components["attr"]
-        ]
-        embeddings["rel_emb"] = [
-            torch.stack([self.vocabulary_encoder(rel) for rel in rel_list]).to(self.device)
-            if rel_list else None
-            for rel_list in components["rel"]
-        ]
-
-        embeddings["neg_obj_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_obj) for n_obj in n_obj_list]).to(self.device)
-            if n_obj_list else None
-            for n_obj_list in components["n_obj"]
-        ]
-        embeddings["neg_attr_n_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_attr) for n_attr in n_attr_list]).to(self.device)
-            if n_attr_list else None
-            for n_attr_list in components["n_attr_n"]
-        ]
-        embeddings["neg_attr_a_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_attr) for n_attr in n_attr_list]).to(self.device)
-            if n_attr_list else None
-            for n_attr_list in components["n_attr_a"]
-        ]
-        embeddings["neg_rel_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_rel) for n_rel in n_rel_list]).to(self.device)
-            if n_rel_list else None
-            for n_rel_list in components["n_rel"]
-        ]
-        # FIXME """
 
         # Use Object Encoder to compute their embeddings in the UniVSE space
         embeddings["sent_emb"] = [self.object_encoder(elem) for elem in embeddings["sent_emb"]]
-        # FIXME """
-        embeddings["obj_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                 embeddings["obj_emb"]]
-        embeddings["attr_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                  embeddings["attr_emb"]]
-        embeddings["rel_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                 embeddings["rel_emb"]]
 
-        embeddings["neg_obj_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                     embeddings["neg_obj_emb"]]
-        embeddings["neg_attr_n_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                        embeddings["neg_attr_n_emb"]]
-        embeddings["neg_attr_a_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                        embeddings["neg_attr_a_emb"]]
-        embeddings["neg_rel_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                     embeddings["neg_rel_emb"]]
-        # FIXME """
-
-        # Relations and captions must be processed more with the Neural Combiner (RNN)
+        # Captions must be processed more with the Neural Combiner (RNN)
         padded_emb, _ = padding_tensor(embeddings["sent_emb"])
         lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
         embeddings["sent_emb"] = self.neural_combiner(padded_emb, lengths)
-
-        # FIXME """
-        embeddings["rel_emb"] = [
-            self.neural_combiner(elem, torch.tensor([3] * elem.size(0)))
-            if elem is not None else None
-            for elem in embeddings["rel_emb"]
-        ]
-        embeddings["neg_rel_emb"] = [
-            torch.stack([
-                self.neural_combiner(elem, torch.tensor([3] * elem.size(0)))
-                if elem is not None else None
-                for elem in relations
-            ])
-            if relations is not None else None
-            for relations in embeddings["neg_rel_emb"]
-        ]
-        # FIXME """
-
-        # FIXME """
-        # Compute Component Embedding aggregating object, attribute and relation embeddings
-        comp_emb = []
-        aggregation = torch.zeros((1, 1024), dtype=torch.float).to(self.device)
-        for obj, attr, rel in zip(embeddings["obj_emb"], embeddings["attr_emb"], embeddings["rel_emb"]):
-            if obj is not None:
-                aggregation = aggregation + obj.sum(dim=0).view(1, -1)
-            if attr is not None:
-                aggregation = aggregation + attr.sum(dim=0).view(1, -1)
-            if rel is not None:
-                aggregation = aggregation + rel.sum(dim=0).view(1, -1)
-            norm_aggregation = f.normalize(aggregation, dim=1, p=2)
-            comp_emb.append(norm_aggregation)
-        embeddings["comp_emb"] = torch.cat(comp_emb, dim=0)
-        
-        # Caption Embedding
-        # Compute caption embedding using alpha (alpha is not trainable)
-        embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
-        # FIXME """
 
         return embeddings
 
