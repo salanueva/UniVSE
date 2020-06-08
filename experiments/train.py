@@ -291,12 +291,23 @@ def main():
                     tr_r5.extend([rt[1]])
                     tr_r10.extend([rt[2]])
 
-                # deep copy the model
-                if running_loss < best_loss:
-                    del best_modif_emb, best_model_wts
-                    best_loss = running_loss
-                    best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
-                    best_model_wts = copy.deepcopy(model.state_dict())
+            # deep copy the model
+            if running_loss < best_loss:
+                del best_modif_emb, best_model_wts
+                best_loss = running_loss
+                best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
+                best_model_wts = copy.deepcopy(model.state_dict())
+
+            # Save intermediate loss and recall plots after the second epoch
+            if epoch > 1:
+                plot_loss_curve(range(1, args.epochs + 1), train_losses, dev_losses, yexp=True)
+                plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
+
+                if args.recall:
+                    plot_recall_curve(range(1, args.epochs + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
+                    plot_recall_curve(range(1, args.epochs + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
 
     model.load_state_dict(best_model_wts)
     model.save_model(os.path.join(args.output_path, f"best_{args.model}.pth"))
