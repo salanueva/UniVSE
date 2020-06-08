@@ -91,7 +91,7 @@ class VocabularyEncoder(nn.Module):
         """
         Extracts all needed ids from a list of captions
         :param captions: list of sentences/captions
-        :return: dictionary with all ids, both positive and negative samples
+        :return: dictionary with all token ids
         """
         components = {}
 

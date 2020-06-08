@@ -181,6 +181,7 @@ def main():
         raise NotImplementedError
     elif args.model == "univse":
         if args.simple:
+            print("Simple")
             model = simp_univse.UniVSE.from_filename(args.vocab_file)
         else:
             model = univse.UniVSE.from_filename(args.vocab_file)
