@@ -300,13 +300,13 @@ def main():
 
             # Save intermediate loss and recall plots after the second epoch
             if epoch > 1:
-                plot_loss_curve(range(1, args.epochs + 1), train_losses, dev_losses, yexp=True)
+                plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
                 plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
 
                 if args.recall:
-                    plot_recall_curve(range(1, args.epochs + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
+                    plot_recall_curve(range(1, epoch + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
-                    plot_recall_curve(range(1, args.epochs + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
+                    plot_recall_curve(range(1, epoch + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
 
     model.load_state_dict(best_model_wts)
