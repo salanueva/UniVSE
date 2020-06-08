@@ -292,8 +292,8 @@ class UniVSE(nn.Module):
         embeddings["sent_emb"] = [self.object_encoder(elem) for elem in embeddings["sent_emb"]]
 
         # Captions must be processed more with the Neural Combiner (RNN)
-        lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
-        padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float()
+        lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]]).to(self.device)
+        padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float().to(self.device)
         for i, cap in enumerate(embeddings["sent_emb"]):
             end = lengths[i]
             padded_emb[i, :end, :] = cap
