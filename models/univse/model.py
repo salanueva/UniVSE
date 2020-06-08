@@ -345,7 +345,7 @@ class UniVSE(nn.Module):
                                      embeddings["neg_rel_emb"]]
 
         # Relations and captions must be processed more with the Neural Combiner (RNN)
-        lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]]).to(self.device)
+        lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
         padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float().to(self.device)
         for i, cap in enumerate(embeddings["sent_emb"]):
             end = lengths[i]
