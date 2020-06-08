@@ -16,6 +16,7 @@ from torchvision import transforms
 
 sys.path.append(os.getcwd())
 from models.univse import model as univse
+from models.simplified_univse import model as simp_univse
 from helper import image_text_retrieval as itr
 
 
@@ -33,7 +34,14 @@ def parse_args():
         '--recall',
         default=False,
         action='store_true',
-        help='Use it if you want to compute R@k values on each epoch and create a plot at the end of the execution.')
+        help='Use it if you want to compute R@k values on each epoch and create a plot at the end of the execution.'
+    )
+    parser.add_argument(
+        '--simple',
+        default=False,
+        action='store_true',
+        help='Use it if you want to use a simplified version of UniVSE. False by default.'
+    )
 
     parser.add_argument(
         '--epochs',
@@ -172,7 +180,11 @@ def main():
     if args.model == "vse++":
         raise NotImplementedError
     elif args.model == "univse":
-        model = univse.UniVSE.from_filename(args.vocab_file)
+        if args.simple:
+            model = simp_univse.UniVSE.from_filename(args.vocab_file)
+        else:
+            model = univse.UniVSE.from_filename(args.vocab_file)
+        # Randomize modifier
         model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100)
     else:
         print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
