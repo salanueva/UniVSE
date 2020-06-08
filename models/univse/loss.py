@@ -230,10 +230,6 @@ class UniVSELoss(nn.Module):
         components and sentences, respectively.
         """
         l_sent = self.contrastive_loss(embeddings["img_emb"], embeddings["sent_emb"])
-        """ USE THIS RETURN IN CASE OF TRYING THE SIMPLIFIED VERSION OF UNIVSE (similar to VSE++)
-        # return l_sent, float(l_sent.data.cpu().numpy())
-        """
-        # FIXME
         l_comp = self.contrastive_loss(embeddings["img_emb"], embeddings["comp_emb"])
 
         l_obj = self.local_loss(embeddings["img_feat_emb"], embeddings["obj_emb"], embeddings["neg_obj_emb"])
@@ -263,4 +259,3 @@ class UniVSELoss(nn.Module):
         other_loss = [float(elem.data.cpu().numpy()) for elem in [l_obj, l_attr, l_rel, l_comp, l_sent]]
 
         return total_loss, other_loss
-        # FIXME """

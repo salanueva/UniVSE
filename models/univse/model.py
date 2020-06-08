@@ -16,36 +16,6 @@ from models.univse import loss
 from models.univse import corpus
 
 
-# Helper Function
-def padding_tensor(sequences):
-    """
-    :param sequences: list of tensors
-    :return:
-    """
-    num = len(sequences)
-    dims = len(sequences[0].size())  # number of dimensions of each tensor in the list
-    max_len = max([s.size(0) for s in sequences])
-    if dims >= 3:
-        out_dims = tuple([num, max_len] + sequences[0].size()[1:])
-    elif dims == 2:
-        out_dims = (num, max_len, sequences[0].size(1))
-    else:
-        out_dims = (num, max_len)
-    mask_dims = (num, max_len)
-    out_tensor = sequences[0].data.new(*out_dims).fill_(0)
-    mask = sequences[0].data.new(*mask_dims).fill_(0)
-    for i, tensor in enumerate(sequences):
-        length = tensor.size(0)
-        if dims == 3:
-            out_tensor[i, :length, :, :] = tensor
-        elif dims == 2:
-            out_tensor[i, :length, :] = tensor
-        else:
-            out_tensor[i, :length] = tensor
-        mask[i, :length] = 1
-    return out_tensor, mask
-
-
 class ObjectEncoder(nn.Module):
     """
     Combines basic semantic embeddings (GloVe) and modifier semantic embeddings
@@ -317,7 +287,7 @@ class UniVSE(nn.Module):
             self.vocabulary_encoder(word_ids).to(self.device)
             for word_ids in components["words"]
         ]
-        # FIXME """
+
         embeddings["obj_emb"] = [
             self.vocabulary_encoder(obj_ids).to(self.device)
             if obj_ids else None
@@ -354,11 +324,10 @@ class UniVSE(nn.Module):
             if n_rel_list else None
             for n_rel_list in components["n_rel"]
         ]
-        # FIXME """
 
         # Use Object Encoder to compute their embeddings in the UniVSE space
         embeddings["sent_emb"] = [self.object_encoder(elem) for elem in embeddings["sent_emb"]]
-        # FIXME """
+
         embeddings["obj_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
                                  embeddings["obj_emb"]]
         embeddings["attr_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
@@ -374,14 +343,15 @@ class UniVSE(nn.Module):
                                         embeddings["neg_attr_a_emb"]]
         embeddings["neg_rel_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
                                      embeddings["neg_rel_emb"]]
-        # FIXME """
 
         # Relations and captions must be processed more with the Neural Combiner (RNN)
-        padded_emb, _ = padding_tensor(embeddings["sent_emb"])
         lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
+        padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float()
+        for i, cap in enumerate(embeddings["sent_emb"]):
+            end = lengths[i]
+            padded_emb[i, :end, :] = cap
         embeddings["sent_emb"] = self.neural_combiner(padded_emb, lengths)
 
-        # FIXME """
         embeddings["rel_emb"] = [
             self.neural_combiner(elem, torch.tensor([3] * elem.size(0)))
             if elem is not None else None
@@ -396,9 +366,7 @@ class UniVSE(nn.Module):
             if relations is not None else None
             for relations in embeddings["neg_rel_emb"]
         ]
-        # FIXME """
 
-        # FIXME """
         # Compute Component Embedding aggregating object, attribute and relation embeddings
         comp_emb = []
         aggregation = torch.zeros((1, 1024), dtype=torch.float).to(self.device)
@@ -416,7 +384,6 @@ class UniVSE(nn.Module):
         # Caption Embedding
         # Compute caption embedding using alpha (alpha is not trainable)
         embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
-        # FIXME """
 
         return embeddings
 
@@ -483,11 +450,9 @@ if __name__ == '__main__':
     cap_2017 = torchvision.datasets.CocoCaptions(images_2017, ann_file_2017, transform=transform, target_transform=None,
                                                  transforms=None)
 
-    # FIXME SHUFFLE SHOULD BE TRUE, BATCH 128
     dataloader = torch.utils.data.DataLoader(cap_2017, batch_size=8, shuffle=False)
     img, sent = next(iter(dataloader))
 
-    # FIXME CHANGE 0 TO idx
     sentences = [sent[0][enum] for enum, idx in enumerate(list(np.random.randint(0, 4, size=8)))]
 
     model = UniVSE.from_filename('/home/ander/Documentos/Datuak/baseline_corpus_univse.pickle')

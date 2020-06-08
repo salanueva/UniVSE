@@ -214,14 +214,12 @@ class VocabularyEncoder(nn.Module):
         caption_words = [nltk.word_tokenize(cap.lower()) for cap in captions]
         components["words"] = [[self.word_ids[w] for w in words] for words in caption_words]
 
-        # FIXME """
         # Parse captions in order to get their objects, attributes and relations
         components["obj"], components["attr"], components["rel"] = self.extract_components(captions)
 
         # Generate negative instances for objects, attributes and relations
         components["n_obj"], components["n_attr_n"], components["n_attr_a"], components["n_rel"] = \
             self.negative_instances(components["obj"], components["attr"], components["rel"])
-        # FIXME """
 
         return components
 

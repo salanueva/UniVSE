@@ -16,36 +16,6 @@ from models.simplified_univse import loss
 from models.simplified_univse import corpus
 
 
-# Helper Function
-def padding_tensor(sequences):
-    """
-    :param sequences: list of tensors
-    :return:
-    """
-    num = len(sequences)
-    dims = len(sequences[0].size())  # number of dimensions of each tensor in the list
-    max_len = max([s.size(0) for s in sequences])
-    if dims >= 3:
-        out_dims = tuple([num, max_len] + sequences[0].size()[1:])
-    elif dims == 2:
-        out_dims = (num, max_len, sequences[0].size(1))
-    else:
-        out_dims = (num, max_len)
-    mask_dims = (num, max_len)
-    out_tensor = sequences[0].data.new(*out_dims).fill_(0)
-    mask = sequences[0].data.new(*mask_dims).fill_(0)
-    for i, tensor in enumerate(sequences):
-        length = tensor.size(0)
-        if dims == 3:
-            out_tensor[i, :length, :, :] = tensor
-        elif dims == 2:
-            out_tensor[i, :length, :] = tensor
-        else:
-            out_tensor[i, :length] = tensor
-        mask[i, :length] = 1
-    return out_tensor, mask
-
-
 class ObjectEncoder(nn.Module):
     """
     Combines basic semantic embeddings (GloVe) and modifier semantic embeddings
@@ -322,8 +292,12 @@ class UniVSE(nn.Module):
         embeddings["sent_emb"] = [self.object_encoder(elem) for elem in embeddings["sent_emb"]]
 
         # Captions must be processed more with the Neural Combiner (RNN)
-        padded_emb, _ = padding_tensor(embeddings["sent_emb"])
         lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
+        padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float()
+        for i, cap in enumerate(embeddings["sent_emb"]):
+            end = lengths[i]
+            padded_emb[i, :end, :] = cap
+
         embeddings["sent_emb"] = self.neural_combiner(padded_emb, lengths)
 
         return embeddings
@@ -407,5 +381,5 @@ if __name__ == '__main__':
     b_loss.backward()
     optimizer.step()
 
-    print(model.vocabulary_encoder.modif(torch.tensor(model.vocabulary_encoder.word_ids["rainbow"]))[:6])
+    # print(model.vocabulary_encoder.modif(torch.tensor(model.vocabulary_encoder.word_ids["rainbow"]))[:6])
     total_loss, b = model.criterion(emb)
