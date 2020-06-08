@@ -299,7 +299,7 @@ def main():
                 best_model_wts = copy.deepcopy(model.state_dict())
 
             # Save intermediate loss and recall plots after the second epoch
-            if epoch > 1:
+            if phase == "dev" and epoch > 1:
                 plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
                 plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
 
