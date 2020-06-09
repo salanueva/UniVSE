@@ -109,7 +109,7 @@ class CustomResNet152(nn.Module):
 
         # Extract features from backbone
         features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048, 1, 1)
-        images = torch.squeeze(self.conv(features))  # (bs, 2048, 1, 1) -> (bs, 1024)
+        images = torch.squeeze(torch.squeeze(self.conv(features), dim=3), dim=2)  # (bs, 2048, 1, 1) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images
