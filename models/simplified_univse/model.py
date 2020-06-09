@@ -108,8 +108,8 @@ class CustomResNet152(nn.Module):
         """
 
         # Extract features from backbone
-        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048)
-        images = self.conv(features)  # (bs, 2048) -> (bs, 1024)
+        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048, 1, 1)
+        images = torch.squeeze(self.conv(features))  # (bs, 2048, 1, 1) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images
@@ -362,7 +362,7 @@ if __name__ == '__main__':
     # FIXME CHANGE 0 TO idx
     sentences = [sent[0][enum] for enum, idx in enumerate(list(np.random.randint(0, 4, size=8)))]
 
-    model = UniVSE.from_filename('/home/ander/Documentos/Datuak/baseline_corpus_univse.pickle')
+    model = UniVSE.from_filename('/home/ander/Documentos/Datuak/simple_corpus_univse.pickle')
     optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
     model.train_start()
