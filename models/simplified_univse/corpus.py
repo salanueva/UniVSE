@@ -12,6 +12,29 @@ sys.path.append(os.getcwd())
 from helper import sng_parser
 
 
+class Corpus(object):
+    """Simple vocabulary wrapper."""
+
+    def __init__(self):
+        self.word2idx = {}
+        self.idx2word = {}
+        self.idx = 0
+
+    def add_word(self, word):
+        if word not in self.word2idx:
+            self.word2idx[word] = self.idx
+            self.idx2word[self.idx] = word
+            self.idx += 1
+
+    def __call__(self, word):
+        if word not in self.word2idx:
+            return self.word2idx['<unk>']
+        return self.word2idx[word]
+
+    def __len__(self):
+        return len(self.word2idx)
+
+
 class VocabularyEncoder(nn.Module):
 
     def __init__(self, captions=None, glove_file=None):
@@ -26,8 +49,7 @@ class VocabularyEncoder(nn.Module):
         self.parser = sng_parser.Parser('spacy', model='en')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.corpus = []
-        self.word_ids = {}
+        self.corpus = Corpus()
 
         self.basic = []
         self.modif = []
@@ -79,13 +101,16 @@ class VocabularyEncoder(nn.Module):
         :param captions: list of sentences
         """
 
+        self.corpus.add_word("<unk>")
+        self.corpus.add_word("<start>")
+        self.corpus.add_word("<end>")
+        self.corpus.add_word("<pad>")
+
         # Parse all captions to list all possible tokens and nouns
         for cap in tqdm(captions, desc="Creating Corpus"):
             tokenized_cap = nltk.word_tokenize(cap.lower())
             for token in tokenized_cap:
-                if token not in self.corpus:
-                    self.word_ids[token] = len(self.corpus)
-                    self.corpus.append(token)
+                self.corpus.add_word(token)
 
     def get_embeddings(self, captions):
         """
@@ -96,8 +121,8 @@ class VocabularyEncoder(nn.Module):
         components = {}
 
         # Parse captions in order to get ids of word/tokens
-        caption_words = [nltk.word_tokenize(cap.lower()) for cap in captions]
-        components["words"] = [[self.word_ids[w] for w in words] for words in caption_words]
+        caption_words = [["<start>"] + nltk.word_tokenize(cap.lower()) + ["<end>"] for cap in captions]
+        components["words"] = [[self.corpus(w) for w in words] for words in caption_words]
 
         return components
 
@@ -110,10 +135,8 @@ class VocabularyEncoder(nn.Module):
             corpus = pickle.load(in_f)
 
         self.corpus = corpus[0]
-        self.word_ids = corpus[1]
-
-        self.basic = corpus[5]
-        self.modif = corpus[6]
+        self.basic = corpus[1]
+        self.modif = corpus[2]
 
     def save_corpus(self, corpus_file):
         """
@@ -123,12 +146,11 @@ class VocabularyEncoder(nn.Module):
         self.cpu()
         corpus = [
             self.corpus,
-            self.word_ids,
-            None,
-            None,
-            None,
             self.basic,
-            self.modif
+            self.modif,
+            None,
+            None,
+            None,
         ]
         self.to(self.device)
         with open(corpus_file, "wb") as out_f:
@@ -143,11 +165,10 @@ class VocabularyEncoder(nn.Module):
         embedding = None
         # Read and create dictionary with glove embeddings
         with open(glove_file, 'r') as file:
-            lines = file.readlines()
-            for line in tqdm(lines, desc="Load GloVe Embeddings"):
+            for line in tqdm(file, desc="Load GloVe Embeddings"):
                 split_line = line.split(' ')
                 word = split_line[0]
-                if word in self.corpus:
+                if word in self.corpus.word2idx.keys():
                     embedding = np.array([float(val) for val in split_line[1:]])
                     glove[word] = torch.from_numpy(embedding).float()
 
@@ -156,12 +177,12 @@ class VocabularyEncoder(nn.Module):
 
         # Link each token of our vocabulary with glove embeddings.
         # If a token hasn't got an embedding, create one randomly.
-        for word in self.corpus:
+        for word in self.corpus.word2idx.keys():
             try:
                 weights_matrix.append(glove[word])
                 words_found += 1
             except KeyError:
-                weights_matrix.append(torch.from_numpy(np.random.normal(scale=0.6, size=(len(embedding),))).float())
+                weights_matrix.append(torch.zeros(len(embedding)).float())
 
         print(f"{words_found}/{len(self.corpus)} words in GloVe ({words_found * 100 / len(self.corpus):.2f}%)")
 

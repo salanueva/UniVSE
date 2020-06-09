@@ -92,7 +92,7 @@ class CustomResNet152(nn.Module):
         self.dim = dim
         # Load pretrained resnet and delete its last two layers
         resnet = torchvision.models.resnet152(pretrained=True)
-        modules = list(resnet.children())[:-2]  # delete avg pool 2d + last fc layer from resnet
+        modules = list(resnet.children())[:-1]  # delete avg pool 2d + last fc layer from resnet
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
         self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
@@ -108,11 +108,8 @@ class CustomResNet152(nn.Module):
         """
 
         # Extract features from backbone
-        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 1024, 7, 7)
-        features = self.conv(features).view(-1, self.dim, 49)  # (bs, 1024, 7, 7) -> (bs, 1024, 49)
-
-        # Max-pooling
-        images,  _ = torch.max(features, dim=2)  # (bs, 1024, 49) -> (bs, 1024)
+        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048)
+        images = self.conv(features)  # (bs, 2048) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images
