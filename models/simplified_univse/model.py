@@ -111,14 +111,8 @@ class CustomResNet152(nn.Module):
         features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 1024, 7, 7)
         features = self.conv(features).view(-1, self.dim, 49)  # (bs, 1024, 7, 7) -> (bs, 1024, 49)
 
-        # Max k-pooling (k=10)
-        index = features.topk(10, dim=2)[1].sort(dim=2)[0]
-        k_pooled_imgs = features.gather(2, index)  # (bs, 1024, 49) -> (bs, 1024, 10)
-        images = torch.mean(k_pooled_imgs, dim=2)  # (bs, 1024, 10) -> (bs, 1024)
-
-        # Normalize vectors (and permute features to handle embeddings more easily)
-        features = f.normalize(features, dim=1, p=2)
-        features = features.permute((0, 2, 1))  # (bs, 1024, 49) -> (bs, 49, 1024)
+        # Max-pooling
+        images,  _ = torch.max(features, dim=2)  # (bs, 1024, 49) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images

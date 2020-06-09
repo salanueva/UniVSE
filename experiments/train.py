@@ -302,12 +302,16 @@ def main():
             if phase == "dev" and epoch > 1:
                 plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
                 plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
+                plt.close()
 
                 if args.recall:
                     plot_recall_curve(range(1, epoch + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
+                    plt.close()
+
                     plot_recall_curve(range(1, epoch + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
+                    plt.close()
 
     model.load_state_dict(best_model_wts)
     model.save_model(os.path.join(args.output_path, f"best_{args.model}.pth"))
@@ -317,12 +321,16 @@ def main():
 
     plot_loss_curve(range(1, args.epochs + 1), train_losses, dev_losses, yexp=True)
     plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
+    plt.close()
 
     if args.recall:
         plot_recall_curve(range(1, args.epochs + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
         plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
+        plt.close()
+
         plot_recall_curve(range(1, args.epochs + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
         plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
+        plt.close()
 
 
 if __name__ == '__main__':
