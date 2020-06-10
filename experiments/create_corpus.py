@@ -38,5 +38,5 @@ if __name__ == "__main__":
         list(cap_vsts_te["sent_1"]) + list(cap_vsts_te["sent_2"])
 
     voc_encoder = univse.VocabularyEncoder(sentences, glove_dir)
-    voc_encoder.save_corpus('simple_corpus_coco_vsts.pickle')
+    # voc_encoder.save_corpus('simple_corpus_coco_vsts.pickle')
 

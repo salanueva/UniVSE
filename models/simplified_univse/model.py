@@ -180,7 +180,7 @@ class UniVSE(nn.Module):
         return cls(vocab_encoder, input_size, hidden_size, grad_clip, rnn_layers, train_cnn)
 
     @classmethod
-    def from_filename(cls, vocab_file, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
+    def from_filename(cls, vocab_file, input_size=300, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
                       train_cnn=False):
         """
         Initializes the Unified Visual Semantic Embeddings model and creates vocabulary
