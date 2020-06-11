@@ -2,7 +2,6 @@ import argparse
 import copy
 import csv
 import matplotlib.pyplot as plt
-import numpy as np
 import os
 import sys
 from tqdm import tqdm
@@ -11,14 +10,13 @@ import torch
 from torch import optim
 from torch.nn.utils.clip_grad import clip_grad_norm
 from torch.utils import data
-import torchvision
 from torchvision import transforms
 
 sys.path.append(os.getcwd())
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 from models.univse.corpus import CocoCaptions
-from helper import image_text_retrieval as itr
+from helper import image_text_retrieval as itr, plotter
 
 
 def parse_args():
@@ -105,64 +103,6 @@ def parse_args():
 
 def decimal_str(x: float, decimals: int = 10) -> str:
     return format(x, f".{decimals}f").lstrip().rstrip('0')
-
-
-def plot_loss_curve(par_values, train_scores, dev_scores, title="Loss Curve", xlab="Epoch", ylab="Loss", yexp=False):
-    """
-    Generate a simple plot of the test and training learning curve.
-    :param par_values: list of checked values of the current parameter.
-    :param train_scores : list of scores obtained in training set (same length as par_values).
-    :param dev_scores : list of scores obtained in dev set (same length as par_values)
-    :param title : title for the chart.
-    :param xlab: name of horizontal axis
-    :param ylab: name of vertical axis
-    :param yexp : True for exponential vertical axis, False otherwise
-    :return Defines minimum and maximum yvalues plotted.
-    """
-    plt.figure()
-    plt.title(title)
-    plt.xlabel(xlab)
-    plt.ylabel(ylab)
-
-    plt.grid()
-    plt.plot(par_values, train_scores, color="r", label="Training loss")
-    plt.plot(par_values, dev_scores, color="g", label="Dev loss")
-
-    if yexp:
-        plt.yscale("log")
-
-    plt.legend(loc="best")
-    return plt
-
-
-def plot_recall_curve(par_values, r1, r5, r10, title="R@k Curve", xlab="Epoch", ylab="R@k", yexp=False):
-    """
-    Generate a simple plot of the test and training learning curve.
-    :param par_values: list of checked values of the current parameter.
-    :param r1: recall@1 values for each epoch in dev set.
-    :param r5: recall@5 values for each epoch in dev set.
-    :param r10: recall@10 values for each epoch in dev set.
-    :param title : title for the chart.
-    :param xlab: name of horizontal axis
-    :param ylab: name of vertical axis
-    :param yexp : True for exponential vertical axis, False otherwise
-    :return Defines minimum and maximum yvalues plotted.
-    """
-    plt.figure()
-    plt.title(title)
-    plt.xlabel(xlab)
-    plt.ylabel(ylab)
-
-    plt.grid()
-    plt.plot(par_values, r1, color="r", label="R@1")
-    plt.plot(par_values, r5, color="g", label="R@5")
-    plt.plot(par_values, r10, color="b", label="R@10")
-
-    if yexp:
-        plt.yscale("log")
-
-    plt.legend(loc="best")
-    return plt
 
 
 def main():
@@ -297,18 +237,18 @@ def main():
 
             # Save intermediate loss and recall plots after the second epoch
             if phase == "dev" and epoch > 1:
-                plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
+                fig = plotter.plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
                 plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
-                plt.close()
+                fig.close()
 
                 if args.recall:
-                    plot_recall_curve(range(1, epoch + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
-                    plt.close()
+                    fig.close()
 
-                    plot_recall_curve(range(1, epoch + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
                     plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
-                    plt.close()
+                    fig.close()
 
     model.load_state_dict(best_model_wts)
     model.save_model(os.path.join(args.output_path, f"best_{args.model}.pth"))
