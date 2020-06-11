@@ -2,6 +2,7 @@ import argparse
 import copy
 import csv
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import sys
 from tqdm import tqdm
@@ -141,12 +142,19 @@ def main():
     optimizer_late = optim.Adam(model.params, lr=1e-5)
 
     print("C) Train model")
-    params = {'batch_size': args.batch_size,
-              'shuffle': True,
-              'num_workers': 6}
+    train_params = {
+        'batch_size': args.batch_size,
+        'shuffle': True,
+        'num_workers': 6
+    }
+    train_gen = data.DataLoader(train_data, **train_params)
 
-    train_gen = data.DataLoader(train_data, **params)
-    dev_gen = data.DataLoader(dev_data, **params)
+    dev_params = {
+        'batch_size': args.batch_size,
+        'shuffle': False,
+        'num_workers': 6
+    }
+    dev_gen = data.DataLoader(dev_data, **dev_params)
 
     train_losses = []
     dev_losses = []
@@ -186,6 +194,10 @@ def main():
             running_loss = 0.0
             idx = 0
 
+            img_embeddings = np.zeros((len(dev_data), args.hidden_size))
+            cap_embeddings = np.zeros((len(dev_data), args.hidden_size))
+            count = 0
+
             # Iterate over data.
             t = tqdm(generator, desc="Batch", leave=False)
             for img, sent in t:
@@ -193,6 +205,12 @@ def main():
                 sentences = list(sent)
                 embeddings = model(img, sentences)
                 total_loss, _ = model.criterion(embeddings)
+
+                if phase == "dev" and args.recall:
+                    aux_count = count + embeddings["cap_emb"].size(0)
+                    img_embeddings[count:aux_count] = embeddings["img_emb"].data.cpu().numpy().copy()
+                    cap_embeddings[count:aux_count] = embeddings["cap_emb"].data.cpu().numpy().copy()
+                    count = aux_count
 
                 if phase == "train":
                     optimizer.zero_grad()
@@ -213,12 +231,10 @@ def main():
             else:
                 dev_losses.append(running_loss)
 
-                # TODO: In case of true, the code could be better optimized
                 if args.recall:
                     # Compute R@k values
-                    img_embs, cap_embs = itr.encode_data(model, dev_data)
-                    rt = itr.i2t(img_embs, cap_embs, measure='cosine', return_ranks=False)
-                    ri = itr.t2i(img_embs, cap_embs, measure='cosine', return_ranks=False)
+                    rt = itr.i2t(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
+                    ri = itr.t2i(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
 
                     ir_r1.extend([ri[0]])
                     ir_r5.extend([ri[1]])

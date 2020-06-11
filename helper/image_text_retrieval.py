@@ -7,13 +7,13 @@ import numpy as np
 import os
 import sys
 import torch
-import torchvision
 from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.append(os.getcwd())
-from models.univse import model as univse
 from models.model_vsepp import order_sim
+from models.univse import model as univse
+from models.univse.corpus import CocoCaptions
 
 
 def encode_data(model, data_loader):
@@ -42,17 +42,17 @@ def encode_data(model, data_loader):
 
         # initialize the numpy arrays given the size of the embeddings
         if img_embeddings is None:
-            img_embeddings = np.zeros((len(data_loader) * 5, img_emb.size(1)))
-            cap_embeddings = np.zeros((len(data_loader) * 5, cap_emb.size(1)))
+            img_embeddings = np.zeros((len(data_loader), img_emb.size(1)))
+            cap_embeddings = np.zeros((len(data_loader), cap_emb.size(1)))
 
-        aux_count = count + 5
+        aux_count = count + cap_emb.size(0)
 
         # if cap_emb.size(0) != 5:
         #    print(i, cap_emb.size(0))
 
         # preserve the embeddings by copying from gpu and converting to numpy
         img_embeddings[count:aux_count] = img_emb.data.cpu().numpy().copy()
-        cap_embeddings[count:aux_count] = cap_emb.data.cpu().numpy()[:5].copy()
+        cap_embeddings[count:aux_count] = cap_emb.data.cpu().numpy().copy()
 
         count = aux_count
 
@@ -80,7 +80,7 @@ def evalrank(model_path, vocab_path, data_path, model_type='univse', fold5=False
     print('Loading dataset')
     img_path, ann_path = data_path
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-    data_loader = torchvision.datasets.CocoCaptions(img_path, ann_path, transform=transform,
+    data_loader = CocoCaptions(img_path, ann_path, transform=transform,
                                                     target_transform=None, transforms=None)
 
     print('Computing results...')
