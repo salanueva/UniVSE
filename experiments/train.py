@@ -15,8 +15,9 @@ import torchvision
 from torchvision import transforms
 
 sys.path.append(os.getcwd())
-from models.univse import model as univse
 from models.simplified_univse import model as simp_univse
+from models.univse import model as univse
+from models.univse.corpus import CocoCaptions
 from helper import image_text_retrieval as itr
 
 
@@ -171,10 +172,10 @@ def main():
 
     print("A) Load data")
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-    train_data = torchvision.datasets.CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform,
-                                                   target_transform=None, transforms=None)
-    dev_data = torchvision.datasets.CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform,
-                                                 target_transform=None, transforms=None)
+    train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform,
+                              target_transform=None, transforms=None)
+    dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform,
+                            target_transform=None, transforms=None)
 
     print("B) Load model")
     if args.model == "vse++":
@@ -249,10 +250,7 @@ def main():
             t = tqdm(generator, desc="Batch", leave=False)
             for img, sent in t:
 
-                sentences = [
-                    sent[idx][enum]
-                    for enum, idx in enumerate(list(np.random.randint(5, size=len(img))))
-                ]
+                sentences = list(sent)
                 embeddings = model(img, sentences)
                 total_loss, _ = model.criterion(embeddings)
 
@@ -317,19 +315,6 @@ def main():
 
     model.vocabulary_encoder.modif = best_modif_emb
     model.vocabulary_encoder.save_corpus(os.path.join(args.output_path, f"best_learned_corpus_{args.model}.pickle"))
-
-    plot_loss_curve(range(1, args.epochs + 1), train_losses, dev_losses, yexp=True)
-    plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
-    plt.close()
-
-    if args.recall:
-        plot_recall_curve(range(1, args.epochs + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
-        plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
-        plt.close()
-
-        plot_recall_curve(range(1, args.epochs + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
-        plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
-        plt.close()
 
 
 if __name__ == '__main__':
