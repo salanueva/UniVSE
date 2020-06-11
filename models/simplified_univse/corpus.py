@@ -120,21 +120,21 @@ class VocabularyEncoder(nn.Module):
 
         if isinstance(word_ids[0], int):
             stack = torch.stack([
-                # torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
-                self.basic[idx].to(self.device)
+                torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
+                # self.basic[idx].to(self.device)
                 for idx in word_ids
             ])
         elif isinstance(word_ids[0], tuple):
             stack = torch.stack([
-                # torch.cat((self.basic[obj_id].to(self.device), self.modif(torch.tensor(attr_id).to(self.device))))
-                self.basic[obj_id].to(self.device)
+                torch.cat((self.basic[obj_id].to(self.device), self.modif(torch.tensor(attr_id).to(self.device))))
+                # self.basic[obj_id].to(self.device)
                 for obj_id, attr_id in word_ids
             ])
         elif isinstance(word_ids[0], list):
             stack = torch.stack([
                 torch.stack([
-                    # torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
-                    self.basic[idx].to(self.device)
+                    torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
+                    # self.basic[idx].to(self.device)
                     for idx in ids
                 ])
                 for ids in word_ids
