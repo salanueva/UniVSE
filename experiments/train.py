@@ -209,7 +209,7 @@ def main():
                 if phase == "dev" and args.recall:
                     aux_count = count + embeddings["cap_emb"].size(0)
                     img_embeddings[count:aux_count] = embeddings["img_emb"].data.cpu().numpy().copy()
-                    cap_embeddings[count:aux_count] = embeddings["cap_emb"].data.cpu().numpy().copy()
+                    cap_embeddings[count:aux_count] = embeddings["sent_emb"].data.cpu().numpy().copy()
                     count = aux_count
 
                 if phase == "train":
