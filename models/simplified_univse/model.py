@@ -120,7 +120,7 @@ class UniVSE(nn.Module):
     Entire UniVSE model
     """
 
-    def __init__(self, vocab_encoder, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1, train_cnn=False):
+    def __init__(self, vocab_encoder, input_size=300, hidden_size=1024, grad_clip=0.0, rnn_layers=1, train_cnn=False):
         """
         Initializes the Unified Visual Semantic Embeddings model
         :param vocab_encoder: object that inherits all functions from class VocabularyEncoder
@@ -163,7 +163,7 @@ class UniVSE(nn.Module):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     @classmethod
-    def from_captions(cls, captions, glove_file, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
+    def from_captions(cls, captions, glove_file, input_size=300, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
                       train_cnn=False):
         """
         Initializes the Unified Visual Semantic Embeddings model and creates vocabulary 
