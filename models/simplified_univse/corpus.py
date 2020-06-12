@@ -101,11 +101,16 @@ class VocabularyEncoder(nn.Module):
         self.basic = []
         self.modif = []
 
+        self.train_corpus_length = 0
+
         if captions is not None and glove_file is not None:
             self.define_corpus_nouns_attributes_and_relations(captions)
 
             self.basic = self.load_glove_embeddings(glove_file)
             self.modif = nn.Embedding(len(self.corpus), 100)
+            self.modif.weight.data[self.train_corpus_length:] = torch.zeros(
+                (len(self.corpus) - self.train_corpus_length, 100)
+            )
 
     def forward(self, word_ids):
         """
@@ -151,16 +156,18 @@ class VocabularyEncoder(nn.Module):
         :param captions: list of sentences
         """
 
-        self.corpus.add_word("<unk>")
-        self.corpus.add_word("<start>")
-        self.corpus.add_word("<end>")
-        self.corpus.add_word("<pad>")
-
         # Parse all captions to list all possible tokens and nouns
         for cap in tqdm(captions, desc="Creating Corpus"):
             tokenized_cap = nltk.word_tokenize(cap.lower())
             for token in tokenized_cap:
                 self.corpus.add_word(token)
+
+        self.train_corpus_length = len(self.corpus)
+
+        self.corpus.add_word("<unk>")
+        self.corpus.add_word("<start>")
+        self.corpus.add_word("<end>")
+        self.corpus.add_word("<pad>")
 
     def get_embeddings(self, captions):
         """
@@ -218,9 +225,8 @@ class VocabularyEncoder(nn.Module):
             for line in tqdm(file, desc="Load GloVe Embeddings"):
                 split_line = line.split(' ')
                 word = split_line[0]
-                if word in self.corpus.word2idx.keys():
-                    embedding = np.array([float(val) for val in split_line[1:]])
-                    glove[word] = torch.from_numpy(embedding).float()
+                embedding = np.array([float(val) for val in split_line[1:]])
+                glove[word] = torch.from_numpy(embedding).float()
 
         weights_matrix = []
         words_found = 0
@@ -234,6 +240,12 @@ class VocabularyEncoder(nn.Module):
             except KeyError:
                 weights_matrix.append(torch.zeros(len(embedding)).float())
 
-        print(f"{words_found}/{len(self.corpus)} words in GloVe ({words_found * 100 / len(self.corpus):.2f}%)")
+        for word in glove.keys():
+            if word not in self.corpus.word2idx.keys():
+                self.corpus.add_word(word)
+                weights_matrix.append(glove[word])
+
+        print(f"{words_found}/{len(self.train_corpus_length)} words in GloVe "
+              f"({words_found * 100 / len(self.train_corpus_length):.2f}%)")
 
         return weights_matrix
