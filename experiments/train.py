@@ -16,6 +16,7 @@ from torchvision import transforms
 sys.path.append(os.getcwd())
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
+from models.vsepp import model as vsepp
 from models.univse.corpus import CocoCaptions
 from helper import image_text_retrieval as itr, plotter
 
@@ -137,7 +138,7 @@ def main():
 
     # Observe that all parameters are being optimized
     optimizer = optim.Adam(model.params, lr=args.lr)
-    lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, 0.5, last_epoch=-1)
+    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 0.5, last_epoch=-1)
 
     optimizer_late = optim.Adam(model.params, lr=1e-5)
 
@@ -176,8 +177,8 @@ def main():
     
         if epoch > 2:
             model.criterion.n_r = 1.0
-            if epoch >= 6 and not optimizer_changed:
-                lr_scheduler.step(epoch - 5)
+            if epoch > 6 and not optimizer_changed:
+                lr_scheduler.step(epoch - 6)
                 if lr_scheduler.get_lr()[0] < 1e-5:
                     optimizer = optimizer_late
                     optimizer_changed = True

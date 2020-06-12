@@ -11,7 +11,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.append(os.getcwd())
-from models.model_vsepp import order_sim
+from models.vsepp.loss import order_sim
 from models.univse import model as univse
 from models.univse.corpus import CocoCaptions
 
@@ -46,9 +46,6 @@ def encode_data(model, data_loader):
             cap_embeddings = np.zeros((len(data_loader), cap_emb.size(1)))
 
         aux_count = count + cap_emb.size(0)
-
-        # if cap_emb.size(0) != 5:
-        #    print(i, cap_emb.size(0))
 
         # preserve the embeddings by copying from gpu and converting to numpy
         img_embeddings[count:aux_count] = img_emb.data.cpu().numpy().copy()

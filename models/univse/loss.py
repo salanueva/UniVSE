@@ -30,7 +30,7 @@ class ContrastiveLoss(nn.Module):
     (from original vse++ github page: https://github.com/fartashf/vsepp)
     """
 
-    def __init__(self, margin=0, measure=False, max_violation=False):
+    def __init__(self, margin=0, measure=False, max_violation=True):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
         if measure == 'order':
