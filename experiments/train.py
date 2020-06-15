@@ -180,11 +180,13 @@ def main():
     
         if epoch > 2:
             model.criterion.n_r = 1.0
+            """
             if epoch > 6 and not optimizer_changed:
                 lr_scheduler.step(epoch - 6)
                 if lr_scheduler.get_lr()[0] < 1e-5:
                     optimizer = optimizer_late
                     optimizer_changed = True
+            """
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'dev']:
