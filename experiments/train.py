@@ -181,7 +181,6 @@ def main():
 
     for epoch in tqdm(range(1, args.epochs + 1), desc="Epoch"):
 
-        lr_scheduler.step(epoch - 1)
         if epoch > 2:
             model.criterion.n_r = 1.0
 
@@ -221,6 +220,7 @@ def main():
                     if model.grad_clip > 0:
                         clip_grad_norm_(model.params, model.grad_clip)
                     optimizer.step()
+                    lr_scheduler.step(epoch - 1)
 
                 total_loss = float(total_loss.data.cpu().numpy())
                 t.set_description(f"Batch Loss: {total_loss:.6f}")
