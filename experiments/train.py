@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 import torch
 from torch import optim
-from torch.nn.utils.clip_grad import clip_grad_norm
+from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils import data
 from torchvision import transforms
 
@@ -219,7 +219,7 @@ def main():
                     optimizer.zero_grad()
                     total_loss.backward()
                     if model.grad_clip > 0:
-                        clip_grad_norm(model.params, model.grad_clip)
+                        clip_grad_norm_(model.params, model.grad_clip)
                     optimizer.step()
 
                 total_loss = float(total_loss.data.cpu().numpy())
