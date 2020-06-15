@@ -47,14 +47,20 @@ def parse_args():
     parser.add_argument(
         '--epochs',
         type=int,
-        default=25,
+        default=30,
         help='Number of epochs for the pre-training process.'
     )
     parser.add_argument(
         "--lr",
         type=float,
-        default=1e-3,
+        default=0.0002,
         help='Initial learning rate of the fine-tuning process.'
+    )
+    parser.add_argument(
+        "--lr_update",
+        type=int,
+        default=15,
+        help='Number of epochs to update the learning rate.'
     )
     parser.add_argument(
         '--batch-size',
@@ -141,9 +147,7 @@ def main():
 
     # Observe that all parameters are being optimized
     optimizer = optim.Adam(model.params, lr=args.lr)
-    lr_scheduler = optim.lr_scheduler.StepLR(optimizer, 0.5, last_epoch=-1)
-
-    optimizer_late = optim.Adam(model.params, lr=1e-5)
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[args.lr_update], gamma=0.1)
 
     print("C) Train model")
     train_params = {
@@ -175,18 +179,11 @@ def main():
     best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
     best_loss = 1e10
 
-    optimizer_changed = False
     for epoch in tqdm(range(1, args.epochs + 1), desc="Epoch"):
-    
+
+        lr_scheduler.step(epoch - 1)
         if epoch > 2:
             model.criterion.n_r = 1.0
-            """
-            if epoch > 6 and not optimizer_changed:
-                lr_scheduler.step(epoch - 6)
-                if lr_scheduler.get_lr()[0] < 1e-5:
-                    optimizer = optimizer_late
-                    optimizer_changed = True
-            """
 
         # Each epoch has a training and validation phase
         for phase in ['train', 'dev']:

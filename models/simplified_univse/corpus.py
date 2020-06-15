@@ -108,6 +108,7 @@ class VocabularyEncoder(nn.Module):
 
             self.basic = self.load_glove_embeddings(glove_file)
             self.modif = nn.Embedding(len(self.corpus), 100)
+            self.modif.weight.data.uniform_(-0.1, 0.1)
             self.modif.weight.data[self.train_corpus_length:] = torch.zeros(
                 (len(self.corpus) - self.train_corpus_length, 100)
             )

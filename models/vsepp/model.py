@@ -25,7 +25,7 @@ def l2norm(x):
 
 
 def image_encoder(data_name, img_dim, embed_size, fine_tune=False,
-                  cnn_type='vgg19', use_abs=False, no_img_norm=False):
+                  cnn_type='resnet152', use_abs=False, no_img_norm=False):
     """
     A wrapper to image encoders. Chooses between an encoder that uses
     precomputed image features, `EncoderImagePrecomp`, or an encoder that
@@ -44,9 +44,9 @@ def image_encoder(data_name, img_dim, embed_size, fine_tune=False,
 # tutorials/09 - Image Captioning
 class EncoderImageFull(nn.Module):
 
-    def __init__(self, embed_size, fine_tune=False, cnn_type='vgg19',
+    def __init__(self, embed_size, fine_tune=False, cnn_type='resnet152',
                  use_abs=False, no_img_norm=False):
-        """Load pretrained VGG19 and replace top fc layer."""
+        """Load pretrained RESNET152 and replace top fc layer."""
         super(EncoderImageFull, self).__init__()
         self.embed_size = embed_size
         self.no_img_norm = no_img_norm
@@ -242,33 +242,33 @@ class VSE(object):
     rkiros/uvs model
     """
 
-    def __init__(self, opt):
+    def __init__(self, vocab_size, word_dim=300, embed_size=1024, lr=2e-3, num_layers=1, finetune=False, cnn_type="resnet152"):
         # tutorials/09 - Image Captioning
         # Build Models
-        self.grad_clip = opt.grad_clip
-        self.img_enc = image_encoder(opt.data_name, opt.img_dim, opt.embed_size,
-                                     opt.finetune, opt.cnn_type,
-                                     use_abs=opt.use_abs,
-                                     no_img_norm=opt.no_imgnorm)
-        self.txt_enc = EncoderText(opt.vocab_size, opt.word_dim,
-                                   opt.embed_size, opt.num_layers,
-                                   use_abs=opt.use_abs)
+        self.grad_clip = 2.0
+        self.img_enc = image_encoder('coco', 2048, embed_size,
+                                     finetune, cnn_type,
+                                     use_abs=False,
+                                     no_img_norm=False)
+        self.txt_enc = EncoderText(vocab_size, word_dim,
+                                   embed_size, num_layers,
+                                   use_abs=False)
         if torch.cuda.is_available():
             self.img_enc.cuda()
             self.txt_enc.cuda()
             cudnn.benchmark = True
 
         # Loss and Optimizer
-        self.criterion = ContrastiveLoss(margin=opt.margin,
-                                         measure=opt.measure,
-                                         max_violation=opt.max_violation)
+        self.criterion = ContrastiveLoss(margin=0.2,
+                                         measure='cosine',
+                                         max_violation=True)
         params = list(self.txt_enc.parameters())
         params += list(self.img_enc.fc.parameters())
-        if opt.finetune:
+        if finetune:
             params += list(self.img_enc.cnn.parameters())
         self.params = params
 
-        self.optimizer = torch.optim.Adam(params, lr=opt.learning_rate)
+        self.optimizer = torch.optim.Adam(params, lr=lr)
 
         self.Eiters = 0
 

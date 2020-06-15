@@ -29,7 +29,7 @@ class ContrastiveLoss(nn.Module):
     (from original vse++ github page: https://github.com/fartashf/vsepp)
     """
 
-    def __init__(self, margin=0, measure=False, max_violation=True):
+    def __init__(self, margin=0.0, measure=False, max_violation=True):
         super(ContrastiveLoss, self).__init__()
         self.margin = margin
         if measure == 'order':
@@ -77,10 +77,10 @@ class UniVSELoss(nn.Module):
     UniVSE loss function, which uses three different types of losses to compute the
     loss value of a batch
     """
-    def __init__(self):
+    def __init__(self, margin=0.2):
         super(UniVSELoss, self).__init__()
 
-        self.contrastive_loss = ContrastiveLoss()
+        self.contrastive_loss = ContrastiveLoss(margin=margin)
 
     def forward(self, embeddings):
         """
