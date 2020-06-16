@@ -35,14 +35,14 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
 
         if isinstance(ann_file, tuple) and val_size > 0:
             self.coco = (COCO(ann_file[0]), COCO(ann_file[1]))
-            self.ids = list(self.coco[0].imgs.keys()) + list(self.coco[1].imgs.keys()[val_size:])
+            self.ids = list(self.coco[0].imgs.keys()) + list(self.coco[1].imgs.keys())[val_size:]
             self.bp = len(self.coco[0].imgs.keys()) * 5
         elif not isinstance(ann_file, tuple) and val_size <= 0:
             self.coco = COCO(ann_file)
             if val_size == 0:
                 self.ids = list(self.coco.imgs.keys())
             else:
-                self.ids = list(self.coco.imgs.keys()[:abs(val_size)])
+                self.ids = list(self.coco.imgs.keys())[:abs(val_size)]
             self.bp = len(self.ids) * 5
         else:
             raise ValueError("CocoCaptions: If val_size is positive, annFile must be a tuple of two strings.")
