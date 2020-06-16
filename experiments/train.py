@@ -269,24 +269,24 @@ def main():
                 dev_losses.append(running_loss)
 
                 # Compute R@k values for 1K Validation
-                if args.plot:
-                    rt = itr.i2t(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
-                    ri = itr.t2i(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
+                rt = itr.i2t(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
+                ri = itr.t2i(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
+                current_rsum_1k = ri[0] + ri[1] + ri[2] + rt[0] + rt[1] + rt[2]
 
-                    ir_r1_1k.extend([ri[0]])
-                    ir_r5_1k.extend([ri[1]])
-                    ir_r10_1k.extend([ri[2]])
+                ir_r1_1k.extend([ri[0]])
+                ir_r5_1k.extend([ri[1]])
+                ir_r10_1k.extend([ri[2]])
 
-                    tr_r1_1k.extend([rt[0]])
-                    tr_r5_1k.extend([rt[1]])
-                    tr_r10_1k.extend([rt[2]])
+                tr_r1_1k.extend([rt[0]])
+                tr_r5_1k.extend([rt[1]])
+                tr_r10_1k.extend([rt[2]])
 
                 # Compute R@k values for 5K Validation
                 rt = itr.i2t(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
                 ri = itr.t2i(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
 
                 current_rsum = ri[0] + ri[1] + ri[2] + rt[0] + rt[1] + rt[2]
-                t_epoch.set_description(f"Epoch: RSum = {current_rsum:.1f})")
+                t_epoch.set_description(f"Epoch RSum: {current_rsum_1k:.1f} (1K) / {current_rsum:.1f} (5K)")
 
                 ir_r1_5k.extend([ri[0]])
                 ir_r5_5k.extend([ri[1]])
