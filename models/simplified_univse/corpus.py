@@ -2,6 +2,7 @@ import nltk
 import numpy as np
 from PIL import Image
 import pickle
+from pycocotools.coco import COCO
 import torch
 import torch.nn as nn
 import torch.nn.init
@@ -17,19 +18,35 @@ from helper import sng_parser
 class CocoCaptions(torchvision.datasets.vision.VisionDataset):
     """`MS Coco Captions <http://mscoco.org/dataset/#captions-challenge2015>`_ Dataset."""
 
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None):
+    def __init__(self, root, ann_file, transform=None, target_transform=None, transforms=None, val_size=0):
         """
         :param root: Root directory where images are downloaded to.
-        :param annFile: Path to json annotation file.
+        :param ann_file: Path to json annotation file.
         :param transform: A function/transform that takes in an PIL image and returns a transformed version.
         :param target_transform: A function/transform that takes in the target and transforms it.
         :param transforms: A function/transform that takes input sample and its target as entry and returns a
         transformed version.
+        :param val_size: How many validation instances are we going to take for validation (in order to take only the
+        ones that are not going to be used for training).
         """
         super(CocoCaptions, self).__init__(root, transforms, transform, target_transform)
-        from pycocotools.coco import COCO
-        self.coco = COCO(annFile)
-        self.ids = list(sorted(self.coco.imgs.keys()))
+
+        self.root = root
+
+        if isinstance(ann_file, tuple) and val_size > 0:
+            self.coco = (COCO(ann_file[0]), COCO(ann_file[1]))
+            self.ids = list(self.coco[0].imgs.keys()) + list(self.coco[1].imgs.keys()[val_size:])
+            self.bp = len(self.coco[0].imgs.keys()) * 5
+        elif not isinstance(ann_file, tuple) and val_size <= 0:
+            self.coco = COCO(ann_file)
+            if val_size == 0:
+                self.ids = list(self.coco.imgs.keys())
+            else:
+                self.ids = list(self.coco.imgs.keys()[:abs(val_size)])
+            self.bp = len(self.ids) * 5
+        else:
+            raise ValueError("CocoCaptions: If val_size is positive, annFile must be a tuple of two strings.")
+
         self.length = len(self.ids) * 5
 
     def __getitem__(self, index):
@@ -37,18 +54,27 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
         :param index: index
         :return: tuple (image, target). target is a unique caption
         """
+        if isinstance(self.coco, tuple):
+            if index < self.bp:
+                coco = self.coco[0]
+                root = self.root[0]
+            else:
+                coco = self.coco[1]
+                root = self.root[1]
+        else:
+            coco = self.coco
+            root = self.root
+
         real_id = index // 5
         cap_id = index % 5
-
-        coco = self.coco
         img_id = self.ids[real_id]
+
         ann_ids = coco.getAnnIds(imgIds=img_id)
         anns = coco.loadAnns(ann_ids)
         target = [ann['caption'] for ann in anns][cap_id]
 
         path = coco.loadImgs(img_id)[0]['file_name']
-
-        img = Image.open(os.path.join(self.root, path)).convert('RGB')
+        img = Image.open(os.path.join(root, path)).convert('RGB')
 
         if self.transforms is not None:
             img, target = self.transforms(img, target)
@@ -246,7 +272,7 @@ class VocabularyEncoder(nn.Module):
                 self.corpus.add_word(word)
                 weights_matrix.append(glove[word])
 
-        print(f"{words_found}/{len(self.train_corpus_length)} words in GloVe "
-              f"({words_found * 100 / len(self.train_corpus_length):.2f}%)")
+        print(f"{words_found}/{self.train_corpus_length} words in GloVe "
+              f"({words_found * 100 / self.train_corpus_length:.2f}%)")
 
         return weights_matrix

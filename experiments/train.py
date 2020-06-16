@@ -17,7 +17,7 @@ sys.path.append(os.getcwd())
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 from models.vsepp import model as vsepp
-from models.univse.corpus import CocoCaptions
+from models.simplified_univse.corpus import CocoCaptions
 from helper import image_text_retrieval as itr, plotter
 
 
@@ -74,6 +74,12 @@ def parse_args():
         default=1024,
         help='Embedding sizes in hidden layers. It will be the size of the UniVSE/VSE++ space.'
     )
+    parser.add_argument(
+        '--restval',
+        type=int,
+        default=5000,
+        help='Number of validation instances that are not going to be used for training.'
+    )
 
     parser.add_argument(
         "--train-img-path",
@@ -120,10 +126,27 @@ def main():
 
     print("A) Load data")
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-    train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform,
-                              target_transform=None, transforms=None)
-    dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform,
-                            target_transform=None, transforms=None)
+
+    if args.restval > 0:
+        train_data = CocoCaptions(
+            (args.train_img_path, args.dev_img_path),
+            (args.train_ann_file, args.dev_ann_file),
+            transform=transform, target_transform=None, transforms=None, val_size=args.restval
+        )
+        dev_data = CocoCaptions(
+            args.dev_img_path,
+            args.dev_ann_file,
+            transform=transform, target_transform=None, transforms=None, val_size=-args.restval
+        )
+    else:
+        train_data = CocoCaptions(
+            args.train_img_path,
+            args.train_ann_file,
+            transform=transform, target_transform=None, transforms=None)
+        dev_data = CocoCaptions(
+            args.dev_img_path,
+            args.dev_ann_file,
+            transform=transform, target_transform=None, transforms=None)
 
     print("B) Load model")
     if args.model == "vse++":
