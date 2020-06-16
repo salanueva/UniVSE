@@ -32,10 +32,10 @@ def parse_args():
         help='Name of the model you want to fine-tune. Choices are: "vse++" (not implemented yet) and "univse".'
     )
     parser.add_argument(
-        '--recall',
+        '--plot',
         default=False,
         action='store_true',
-        help='Use it if you want to compute R@k values on each epoch and create a plot at the end of the execution.'
+        help='Use it if you want to create plots of R@k values and loss values during training.'
     )
     parser.add_argument(
         '--simple',
@@ -78,7 +78,8 @@ def parse_args():
         '--restval',
         type=int,
         default=5000,
-        help='Number of validation instances that are not going to be used for training.'
+        help='Number of validation instances that are going to be used for validation (0, by default, means that all '
+             'of them are going to be used for validation.'
     )
 
     parser.add_argument(
@@ -190,19 +191,28 @@ def main():
     train_losses = []
     dev_losses = []
 
-    ir_r1 = []
-    ir_r5 = []
-    ir_r10 = []
+    ir_r1_1k = []
+    ir_r5_1k = []
+    ir_r10_1k = []
 
-    tr_r1 = []
-    tr_r5 = []
-    tr_r10 = []
+    tr_r1_1k = []
+    tr_r5_1k = []
+    tr_r10_1k = []
+
+    ir_r1_5k = []
+    ir_r5_5k = []
+    ir_r10_5k = []
+
+    tr_r1_5k = []
+    tr_r5_5k = []
+    tr_r10_5k = []
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
-    best_loss = 1e10
+    best_rsum = 0
 
-    for epoch in tqdm(range(1, args.epochs + 1), desc="Epoch"):
+    t_epoch = tqdm(range(1, args.epochs + 1), desc="Epoch")
+    for epoch in t_epoch:
 
         if epoch > 2:
             model.criterion.n_r = 1.0
@@ -224,14 +234,14 @@ def main():
             count = 0
 
             # Iterate over data.
-            t = tqdm(generator, desc="Batch", leave=False)
-            for img, sent in t:
+            t_batch = tqdm(generator, desc="Batch", leave=False)
+            for img, sent in t_batch:
 
                 sentences = list(sent)
                 embeddings = model(img, sentences)
                 total_loss, _ = model.criterion(embeddings)
 
-                if phase == "dev" and args.recall:
+                if phase == "dev":
                     aux_count = count + embeddings["sent_emb"].size(0)
                     img_embeddings[count:aux_count] = embeddings["img_emb"].data.cpu().numpy().copy()
                     cap_embeddings[count:aux_count] = embeddings["sent_emb"].data.cpu().numpy().copy()
@@ -246,7 +256,7 @@ def main():
                     lr_scheduler.step(epoch - 1)
 
                 total_loss = float(total_loss.data.cpu().numpy())
-                t.set_description(f"Batch Loss: {total_loss:.6f}")
+                t_batch.set_description(f"Batch Loss: {total_loss:.6f}")
                 running_loss += total_loss
                 idx += 1
 
@@ -257,40 +267,68 @@ def main():
             else:
                 dev_losses.append(running_loss)
 
-                if args.recall:
-                    # Compute R@k values
-                    rt = itr.i2t(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
-                    ri = itr.t2i(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
+                # Compute R@k values for 1K Validation
+                if args.plot:
+                    rt = itr.i2t(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
+                    ri = itr.t2i(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
 
-                    ir_r1.extend([ri[0]])
-                    ir_r5.extend([ri[1]])
-                    ir_r10.extend([ri[2]])
+                    ir_r1_1k.extend([ri[0]])
+                    ir_r5_1k.extend([ri[1]])
+                    ir_r10_1k.extend([ri[2]])
 
-                    tr_r1.extend([rt[0]])
-                    tr_r5.extend([rt[1]])
-                    tr_r10.extend([rt[2]])
+                    tr_r1_1k.extend([rt[0]])
+                    tr_r5_1k.extend([rt[1]])
+                    tr_r10_1k.extend([rt[2]])
 
-            # deep copy the model
-            if running_loss < best_loss:
-                del best_modif_emb, best_model_wts
-                best_loss = running_loss
-                best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
-                best_model_wts = copy.deepcopy(model.state_dict())
+                # Compute R@k values for 5K Validation
+                rt = itr.i2t(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
+                ri = itr.t2i(img_embeddings, cap_embeddings, measure='cosine', return_ranks=False)
+
+                current_rsum = ri[0] + ri[1] + ri[2] + rt[0] + rt[1] + rt[2]
+                t_epoch.set_description(f"Epoch: RSum = {current_rsum:.1f})")
+
+                ir_r1_5k.extend([ri[0]])
+                ir_r5_5k.extend([ri[1]])
+                ir_r10_5k.extend([ri[2]])
+
+                tr_r1_5k.extend([rt[0]])
+                tr_r5_5k.extend([rt[1]])
+                tr_r10_5k.extend([rt[2]])
+
+                # Deep copy the model if it's the best rsum
+                if current_rsum > best_rsum:
+                    del best_modif_emb, best_model_wts
+                    best_rsum = current_rsum
+                    best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
+                    best_model_wts = copy.deepcopy(model.state_dict())
+
+                # Plot recall@k values
+                if args.plot and epoch > 1:
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), ir_r1_1k, ir_r5_1k, ir_r10_1k,
+                                                    title="Image Retrieval (1K)")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir_1k.png"))
+                    plt.close(fig)
+
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), tr_r1_1k, tr_r5_1k, tr_r10_1k,
+                                                    title="Text Retrieval (1K)")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr_1k.png"))
+                    plt.close(fig)
+
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), ir_r1_5k, ir_r5_5k, ir_r10_5k,
+                                                    title="Image Retrieval (5K)")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir_5k.png"))
+                    plt.close(fig)
+
+                    fig = plotter.plot_recall_curve(range(1, epoch + 1), tr_r1_5k, tr_r5_5k, tr_r10_5k,
+                                                    title="Text Retrieval (5K)")
+                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr_5k.png"))
+                    plt.close(fig)
 
             # Save intermediate loss and recall plots after the second epoch
-            if phase == "dev" and epoch > 1:
+            if args.plot and phase == "dev" and epoch > 1:
                 fig = plotter.plot_loss_curve(range(1, epoch + 1), train_losses, dev_losses, yexp=True)
                 plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
                 plt.close(fig)
-
-                if args.recall:
-                    fig = plotter.plot_recall_curve(range(1, epoch + 1), ir_r1, ir_r5, ir_r10, title="Image Retrieval")
-                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_ir.png"))
-                    plt.close(fig)
-
-                    fig = plotter.plot_recall_curve(range(1, epoch + 1), tr_r1, tr_r5, tr_r10, title="Text Retrieval")
-                    plt.savefig(os.path.join(args.output_path, f"training_recalls_{args.model}_tr.png"))
-                    plt.close(fig)
 
     model.load_state_dict(best_model_wts)
     model.save_model(os.path.join(args.output_path, f"best_{args.model}.pth"))
