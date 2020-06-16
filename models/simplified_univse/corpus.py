@@ -151,7 +151,6 @@ class VocabularyEncoder(nn.Module):
             return stack
 
         if isinstance(word_ids[0], int):
-            """
             stack_basic = torch.stack([
                 self.basic[idx].to(self.device)
                 for idx in word_ids
@@ -163,6 +162,7 @@ class VocabularyEncoder(nn.Module):
                 self.basic[idx].to(self.device)
                 for idx in word_ids
             ])
+            """
         elif isinstance(word_ids[0], tuple):
             stack = torch.stack([
                 torch.cat((self.basic[obj_id].to(self.device), self.modif(torch.tensor(attr_id).to(self.device))))
