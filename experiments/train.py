@@ -4,6 +4,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 import sys
 from tqdm import tqdm
 
@@ -335,6 +336,19 @@ def main():
 
     model.vocabulary_encoder.modif = best_modif_emb
     model.vocabulary_encoder.save_corpus(os.path.join(args.output_path, f"best_learned_corpus_{args.model}.pickle"))
+
+    with open(os.path.join(args.output_path, "losses.pickle"), "w") as f:
+        losses = {"train": train_losses, "dev": dev_losses}
+        pickle.dump(losses, f)
+
+    with open(os.path.join(args.output_path, "recalls_at_k.pickle"), "w") as f:
+        recalls_at_k = {
+            "ir_r1_1k": ir_r1_1k, "ir_r5_1k": ir_r5_1k, "ir_r10_1k": ir_r10_1k,
+            "tr_r1_1k": tr_r1_1k, "tr_r5_1k": tr_r5_1k, "tr_r10_1k": tr_r10_1k,
+            "ir_r1_5k": ir_r1_5k, "ir_r5_5k": ir_r5_5k, "ir_r10_5k": ir_r10_5k,
+            "tr_r1_5k": tr_r1_5k, "tr_r5_5k": tr_r5_5k, "tr_r10_5k": tr_r10_5k
+        }
+        pickle.dump(recalls_at_k, f)
 
 
 if __name__ == '__main__':
