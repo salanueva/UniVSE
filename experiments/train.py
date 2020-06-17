@@ -44,6 +44,12 @@ def parse_args():
         action='store_true',
         help='Use it if you want to use a simplified version of UniVSE. False by default.'
     )
+    parser.add_argument(
+        '--restval',
+        default=False,
+        action='store_true',
+        help='Restval instances will be used for training.'
+    )
 
     parser.add_argument(
         '--epochs',
@@ -74,13 +80,6 @@ def parse_args():
         type=int,
         default=1024,
         help='Embedding sizes in hidden layers. It will be the size of the UniVSE/VSE++ space.'
-    )
-    parser.add_argument(
-        '--restval',
-        type=int,
-        default=5000,
-        help='Number of validation instances that are going to be used for validation (0, by default, means that all '
-             'of them are going to be used for validation.'
     )
 
     parser.add_argument(
@@ -129,26 +128,26 @@ def main():
     print("A) Load data")
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
 
-    if args.restval > 0:
+    if args.restval:
         train_data = CocoCaptions(
             (args.train_img_path, args.dev_img_path),
             (args.train_ann_file, args.dev_ann_file),
-            transform=transform, target_transform=None, transforms=None, val_size=args.restval
+            transform=transform, target_transform=None, transforms=None, split="restval"
         )
         dev_data = CocoCaptions(
             args.dev_img_path,
             args.dev_ann_file,
-            transform=transform, target_transform=None, transforms=None, val_size=-args.restval
+            transform=transform, target_transform=None, transforms=None, split="dev"
         )
     else:
         train_data = CocoCaptions(
             args.train_img_path,
             args.train_ann_file,
-            transform=transform, target_transform=None, transforms=None)
+            transform=transform, target_transform=None, transforms=None, split="train")
         dev_data = CocoCaptions(
             args.dev_img_path,
             args.dev_ann_file,
-            transform=transform, target_transform=None, transforms=None)
+            transform=transform, target_transform=None, transforms=None, split="dev")
 
     print("B) Load model")
     if args.model == "vse++":
