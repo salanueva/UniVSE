@@ -95,7 +95,8 @@ class CustomResNet152(nn.Module):
         modules = list(resnet.children())[:-1]  # delete avg pool 2d + last fc layer from resnet
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
-        self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        # self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        self.linear = nn.Linear(2048, self.dim)
         for param in self.resnet.parameters():
             param.requires_grad = train_resnet
 
@@ -109,7 +110,8 @@ class CustomResNet152(nn.Module):
 
         # Extract features from backbone
         features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048, 1, 1)
-        images = torch.squeeze(torch.squeeze(self.conv(features), dim=3), dim=2)  # (bs, 2048, 1, 1) -> (bs, 1024)
+        features = torch.squeeze(torch.squeeze(features, dim=3), dim=2)  # (bs, 2048, 1, 1) -> (bs, 2048)
+        images = self.linear(features)  # (bs, 2048) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images
