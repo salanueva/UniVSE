@@ -35,7 +35,7 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
 
         if isinstance(ann_file, tuple) and split == "restval":
             self.coco = (COCO(ann_file[0]), COCO(ann_file[1]))
-            self.ids = np.load('data/coco_restval_ids.npy')
+            self.ids = list(np.load('data/coco_train_ids.npy')) + list(np.load('data/coco_restval_ids.npy'))
             self.bp = len(self.coco[0].imgs.keys()) * 5
         else:
             self.coco = COCO(ann_file)
