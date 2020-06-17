@@ -35,21 +35,22 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
 
         if isinstance(ann_file, tuple) and split == "restval":
             self.coco = (COCO(ann_file[0]), COCO(ann_file[1]))
-            self.ids = list(np.load('data/coco_train_ids.npy')) + list(np.load('data/coco_restval_ids.npy'))
-            self.bp = len(self.coco[0].imgs.keys()) * 5
+            self.ids = list(np.load('data/coco_train_ids.npy'))
+            self.bp = len(self.ids)
+            self.ids += list(np.load('data/coco_restval_ids.npy'))
         else:
             self.coco = COCO(ann_file)
             if split == "train":
-                self.ids = np.load('data/coco_train_ids.npy')
+                self.ids = list(np.load('data/coco_train_ids.npy'))
             elif split == "dev":
-                self.ids = np.load('data/coco_dev_ids.npy')
+                self.ids = list(np.load('data/coco_dev_ids.npy'))
             elif split == "test":
-                self.ids = np.load('data/coco_test_ids.npy')
+                self.ids = list(np.load('data/coco_test_ids.npy'))
             else:
                 raise ValueError
-            self.bp = len(self.ids) * 5
+            self.bp = len(self.ids)
 
-        self.length = len(self.ids) * 5
+        self.length = len(self.ids)
 
     def __getitem__(self, index):
         """
@@ -67,14 +68,10 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
             coco = self.coco
             root = self.root
 
-        real_id = index // 5
-        cap_id = index % 5
-        img_id = self.ids[real_id]
+        ann_id = self.ids[index]
+        target = coco.anns[ann_id]['caption']
 
-        ann_ids = coco.getAnnIds(imgIds=img_id)
-        anns = coco.loadAnns(ann_ids)
-        target = [ann['caption'] for ann in anns][cap_id]
-
+        img_id = coco.anns[ann_id]['image_id']
         path = coco.loadImgs(img_id)[0]['file_name']
         img = Image.open(os.path.join(root, path)).convert('RGB')
 
