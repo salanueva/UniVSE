@@ -43,6 +43,10 @@ def encode_data(model, data_loader):
         img_emb = embeddings["img_emb"]
         cap_emb = embeddings["sent_emb"]
 
+        print(img_emb.size())
+        print(cap_emb.size())
+        exit(0)
+
         # initialize the numpy arrays given the size of the embeddings
         if img_embeddings is None:
             img_embeddings = np.zeros((len(data_loader), img_emb.size(1)))
