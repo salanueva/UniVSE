@@ -37,9 +37,7 @@ def encode_data(model, data_loader):
     for i, (images, captions) in tqdm(enumerate(data_loader), desc="Compute embeddings for R@k", leave=False):
 
         # compute the embeddings
-        print(images.size())
-        exit(0)
-        images = images.unsqueeze(0).to(device)
+        images = images.to(device)
         captions = captions
         embeddings = model(images, captions)
         img_emb = embeddings["img_emb"]
