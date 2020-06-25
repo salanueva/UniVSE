@@ -14,6 +14,8 @@ sys.path.append(os.getcwd())
 from models.vsepp.loss import order_sim
 from models.univse import model as univse
 from models.univse.corpus import CocoCaptions
+from models.simplified_univse import model as simp_univse
+from models.simplified_univse.corpus import CocoCaptionsSimple
 
 
 def encode_data(model, data_loader):
@@ -70,6 +72,9 @@ def evalrank(model_path, vocab_path, data_path, model_type='univse', fold5=False
     elif model_type == "univse":
         model = univse.UniVSE.from_filename(vocab_path)
         model.load_model(model_path)
+    elif model_type == "simp_univse":
+        model = simp_univse.UniVSE.from_filename(vocab_path)
+        model.load_model(model_path)
     else:
         print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
         return
@@ -77,8 +82,11 @@ def evalrank(model_path, vocab_path, data_path, model_type='univse', fold5=False
     print('Loading dataset')
     img_path, ann_path = data_path
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-    data_loader = CocoCaptions(img_path, ann_path, transform=transform,
-                                                    target_transform=None, transforms=None)
+    if model_type.startswith("simp"):
+        data_loader = CocoCaptionsSimple(img_path, ann_path, transform=transform,
+                                         target_transform=None, transforms=None)
+    else:
+        data_loader = CocoCaptions(img_path, ann_path, transform=transform, target_transform=None, transforms=None)
 
     print('Computing results...')
     img_embs, cap_embs = encode_data(model, data_loader)

@@ -134,20 +134,18 @@ def main():
             (args.train_ann_file, args.dev_ann_file),
             transform=transform, target_transform=None, transforms=None, split="restval"
         )
-        dev_data = CocoCaptions(
-            args.dev_img_path,
-            args.dev_ann_file,
-            transform=transform, target_transform=None, transforms=None, split="dev"
-        )
     else:
         train_data = CocoCaptions(
             args.train_img_path,
             args.train_ann_file,
-            transform=transform, target_transform=None, transforms=None, split="train")
-        dev_data = CocoCaptions(
-            args.dev_img_path,
-            args.dev_ann_file,
-            transform=transform, target_transform=None, transforms=None, split="dev")
+            transform=transform, target_transform=None, transforms=None, split="train"
+        )
+
+    dev_data = CocoCaptions(
+        args.dev_img_path,
+        args.dev_ann_file,
+        transform=transform, target_transform=None, transforms=None, split="dev"
+    )
 
     print("B) Load model")
     if args.model == "vse++":
@@ -269,8 +267,8 @@ def main():
                 dev_losses.append(running_loss)
 
                 # Compute R@k values for 1K Validation
-                rt = itr.i2t(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
-                ri = itr.t2i(img_embeddings[:1000], cap_embeddings[:1000], measure='cosine', return_ranks=False)
+                rt = itr.i2t(img_embeddings[:5000], cap_embeddings[:5000], measure='cosine', return_ranks=False)
+                ri = itr.t2i(img_embeddings[:5000], cap_embeddings[:5000], measure='cosine', return_ranks=False)
                 current_rsum_1k = ri[0] + ri[1] + ri[2] + rt[0] + rt[1] + rt[2]
 
                 ir_r1_1k.extend([ri[0]])
