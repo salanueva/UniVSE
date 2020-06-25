@@ -34,7 +34,7 @@ def encode_data(model, data_loader):
     # numpy array to keep all the embeddings
     img_embeddings = None
     cap_embeddings = None
-    for i, (images, captions) in tqdm(enumerate(data_loader), desc="Compute embeddings for R@k", leave=False):
+    for images, captions in tqdm(data_loader, desc="Compute embeddings for R@k", leave=False):
 
         # compute the embeddings
         images = images.to(device)
@@ -45,7 +45,6 @@ def encode_data(model, data_loader):
 
         print(img_emb.size())
         print(cap_emb.size())
-        exit(0)
 
         # initialize the numpy arrays given the size of the embeddings
         if img_embeddings is None:
