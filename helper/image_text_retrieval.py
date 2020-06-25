@@ -7,6 +7,7 @@ import numpy as np
 import os
 import sys
 import torch
+from torch.utils import data
 from torchvision import transforms
 from tqdm import tqdm
 
@@ -87,6 +88,13 @@ def evalrank(model_path, vocab_path, data_path, model_type='univse', fold5=False
                                          target_transform=None, transforms=None, split="test")
     else:
         data_loader = CocoCaptions(img_path, ann_path, transform=transform, target_transform=None, transforms=None)
+
+    params = {
+        'batch_size': 128,
+        'shuffle': False,
+        'num_workers': 6
+    }
+    data_loader = data.DataLoader(data_loader, **params)
 
     print('Computing results...')
     img_embs, cap_embs = encode_data(model, data_loader)
