@@ -12,7 +12,7 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["vse++", "univse"],
+        choices=["vse++", "univse", "simp_univse"],
         default="univse",
         help='Name of the model that will be used. Choices are: "vse++" (not implemented yet) and "univse".'
     )
