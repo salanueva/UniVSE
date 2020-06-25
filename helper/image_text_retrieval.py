@@ -48,8 +48,8 @@ def encode_data(model, data_loader):
 
         # initialize the numpy arrays given the size of the embeddings
         if img_embeddings is None:
-            img_embeddings = np.zeros((len(data_loader), img_emb.size(1)))
-            cap_embeddings = np.zeros((len(data_loader), cap_emb.size(1)))
+            img_embeddings = np.zeros((len(data_loader) * img_emb.size(0), img_emb.size(1)))
+            cap_embeddings = np.zeros((len(data_loader) * cap_emb.size(0), cap_emb.size(1)))
 
         aux_count = count + cap_emb.size(0)
 
@@ -60,6 +60,9 @@ def encode_data(model, data_loader):
         count = aux_count
 
         del images, captions
+
+    img_embeddings = np.delete(img_embeddings, slice(count, None), 0)
+    cap_embeddings = np.delete(cap_embeddings, slice(count, None), 0)
 
     return img_embeddings, cap_embeddings
 
