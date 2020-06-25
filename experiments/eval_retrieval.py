@@ -44,4 +44,7 @@ if __name__ == '__main__':
 
     args = parse_args()
     data_path = (args.img_path, args.ann_path)
-    itr.evalrank(args.model_path, args.vocab_path, data_path, args.model)
+    print("1K Test Split")
+    itr.evalrank(args.model_path, args.vocab_path, data_path, args.model, False)
+    print("\n5K Test Split")
+    itr.evalrank(args.model_path, args.vocab_path, data_path, args.model, True)
