@@ -12,11 +12,10 @@ from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.append(os.getcwd())
+from helper.coco_captions import CocoCaptions
 from models.vsepp.loss import order_sim
 from models.univse import model as univse
-from models.univse.corpus import CocoCaptions
 from models.simplified_univse import model as simp_univse
-from models.simplified_univse.corpus import CocoCaptions as CocoCaptionsSimple
 
 
 def encode_data(model, data_loader):

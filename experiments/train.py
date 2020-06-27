@@ -15,11 +15,11 @@ from torch.utils import data
 from torchvision import transforms
 
 sys.path.append(os.getcwd())
+from helper.coco_captions import CocoCaptions
+from helper import image_text_retrieval as itr, plotter
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 from models.vsepp import model as vsepp
-from models.simplified_univse.corpus import CocoCaptions
-from helper import image_text_retrieval as itr, plotter
 
 
 def parse_args():

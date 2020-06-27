@@ -2,63 +2,16 @@ import nltk
 from nltk.corpus import wordnet as wn
 import numpy as np
 import pickle
-from PIL import Image
 import random
 import torch
 import torch.nn as nn
 import torch.nn.init
-import torchvision
 from tqdm import tqdm
 import os
 import sys
 
 sys.path.append(os.getcwd())
 from helper import sng_parser
-
-
-class CocoCaptions(torchvision.datasets.vision.VisionDataset):
-    """`MS Coco Captions <http://mscoco.org/dataset/#captions-challenge2015>`_ Dataset."""
-
-    def __init__(self, root, annFile, transform=None, target_transform=None, transforms=None):
-        """
-        :param root: Root directory where images are downloaded to.
-        :param annFile: Path to json annotation file.
-        :param transform: A function/transform that takes in an PIL image and returns a transformed version.
-        :param target_transform: A function/transform that takes in the target and transforms it.
-        :param transforms: A function/transform that takes input sample and its target as entry and returns a
-        transformed version.
-        """
-        super(CocoCaptions, self).__init__(root, transforms, transform, target_transform)
-        from pycocotools.coco import COCO
-        self.coco = COCO(annFile)
-        self.ids = list(sorted(self.coco.imgs.keys()))
-        self.length = len(self.ids) * 5
-
-    def __getitem__(self, index):
-        """
-        :param index: index
-        :return: tuple (image, target). target is a unique caption
-        """
-        real_id = index // 5
-        cap_id = index % 5
-
-        coco = self.coco
-        img_id = self.ids[real_id]
-        ann_ids = coco.getAnnIds(imgIds=img_id)
-        anns = coco.loadAnns(ann_ids)
-        target = [ann['caption'] for ann in anns][cap_id]
-
-        path = coco.loadImgs(img_id)[0]['file_name']
-
-        img = Image.open(os.path.join(self.root, path)).convert('RGB')
-
-        if self.transforms is not None:
-            img, target = self.transforms(img, target)
-
-        return img, target
-
-    def __len__(self):
-        return self.length
 
 
 class VocabularyEncoder(nn.Module):

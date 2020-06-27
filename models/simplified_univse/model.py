@@ -1,4 +1,3 @@
-import numpy as np
 import pickle
 import torch
 from torch.autograd import Variable
@@ -7,7 +6,6 @@ import torch.nn.functional as f
 import torch.nn.init
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torchvision
-from torchvision import transforms
 import os
 import sys
 
@@ -293,85 +291,3 @@ class UniVSE(nn.Module):
         embeddings["sent_emb"] = self.neural_combiner(padded_emb, lengths)
 
         return embeddings
-
-
-# This main function is used to make some experiments in a fast way
-if __name__ == '__main__':
-
-    """
-    glove_dir = "/home/ander/Documentos/Datuak/glove/glove.840B.300d.txt"
-    images_2014 = "/home/ander/Documentos/Datuak/mscoco/train2014"
-    ann_file_2014 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/home/ander/Documentos/Datuak/mscoco/val2017"
-    ann_file_2017 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2017.json"
-    """
-    """
-    glove_dir = "/gscratch/users/asalaberria009/datasets/glove/glove.840B.300d.txt"
-    images_2014 = "/gscratch/users/asalaberria009/datasets/mscoco/images/train2014"
-    ann_file_2014 = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/gscratch/users/asalaberria009/datasets/mscoco/images/val2017"
-    ann_file_2017 = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_val2017.json"
-
-    transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-
-    cap_2014 = torchvision.datasets.CocoCaptions(images_2014, ann_file_2014, transform=transform, target_transform=None,
-                                                 transforms=None)
-    cap_2017 = torchvision.datasets.CocoCaptions(images_2017, ann_file_2017, transform=transform, target_transform=None,
-                                                 transforms=None)
-    train_vsts, dev_vsts, test_vsts = ld.download_and_load_vsts_dataset(
-        # images=False, v2=True, root_path="/home/ander/Documentos/Datuak"
-        images=False, v2=True, root_path="/gscratch/users/asalaberria009/datasets/vSTS_v2"
-    )
-
-    sentences = []
-
-    for _, sent in tqdm(cap_2014):
-        sentences += sent
-
-    for _, sent in tqdm(cap_2017):
-        sentences += sent
-
-    sentences += list(train_vsts["sent_1"])
-    sentences += list(train_vsts["sent_2"])
-    sentences += list(dev_vsts["sent_1"])
-    sentences += list(dev_vsts["sent_2"])
-    sentences += list(test_vsts["sent_1"])
-    sentences += list(test_vsts["sent_2"])
-
-    print(f"Amount of sentences: {len(sentences)}")
-
-    vocab = VocabularyEncoder(sentences, glove_dir)
-    vocab.save_corpus("initial_corpus.pickle")
-
-    """
-    glove_dir = "/home/ander/Documentos/Datuak/glove/glove.840B.300d.txt"
-    images_2014 = "/home/ander/Documentos/Datuak/mscoco/train2014"
-    ann_file_2014 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/home/ander/Documentos/Datuak/mscoco/val2017"
-    ann_file_2017 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2017.json"
-
-    transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-
-    cap_2014 = torchvision.datasets.CocoCaptions(images_2014, ann_file_2014, transform=transform, target_transform=None,
-                                                 transforms=None)
-    cap_2017 = torchvision.datasets.CocoCaptions(images_2017, ann_file_2017, transform=transform, target_transform=None,
-                                                 transforms=None)
-
-    # FIXME SHUFFLE SHOULD BE TRUE, BATCH 128
-    dataloader = torch.utils.data.DataLoader(cap_2017, batch_size=8, shuffle=False)
-    img, sent = next(iter(dataloader))
-
-    # FIXME CHANGE 0 TO idx
-    sentences = [sent[0][enum] for enum, idx in enumerate(list(np.random.randint(0, 4, size=8)))]
-
-    model = UniVSE.from_filename('/home/ander/Documentos/Datuak/simple_corpus_univse.pickle')
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-
-    model.train_start()
-    emb = model(img, sentences)
-    b_loss, o = model.criterion(emb)
-    b_loss.backward()
-    optimizer.step()
-
-    # print(model.vocabulary_encoder.modif(torch.tensor(model.vocabulary_encoder.word_ids["rainbow"]))[:6])
-    total_loss, b = model.criterion(emb)
