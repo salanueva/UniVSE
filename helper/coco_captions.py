@@ -72,3 +72,7 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
 
     def __len__(self):
         return self.length
+
+
+if __name__ == "__main__":
+    print("a")

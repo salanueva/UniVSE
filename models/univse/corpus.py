@@ -14,6 +14,29 @@ sys.path.append(os.getcwd())
 from helper import sng_parser
 
 
+class Corpus(object):
+    """Simple vocabulary wrapper."""
+
+    def __init__(self):
+        self.word2idx = {}
+        self.idx2word = {}
+        self.idx = 0
+
+    def add_word(self, word):
+        if word not in self.word2idx:
+            self.word2idx[word] = self.idx
+            self.idx2word[self.idx] = word
+            self.idx += 1
+
+    def __call__(self, word):
+        if word not in self.word2idx:
+            return self.word2idx['<unk>']
+        return self.word2idx[word]
+
+    def __len__(self):
+        return len(self.word2idx)
+
+
 class VocabularyEncoder(nn.Module):
 
     def __init__(self, captions=None, glove_file=None):
@@ -28,21 +51,25 @@ class VocabularyEncoder(nn.Module):
         self.parser = sng_parser.Parser('spacy', model='en')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.corpus = []
-        self.word_ids = {}
+        self.corpus = Corpus()
+
+        self.basic = []
+        self.modif = []
 
         self.neg_obj = []
         self.neg_attr = []
         self.neg_rel = []
 
-        self.basic = []
-        self.modif = []
+        self.train_corpus_length = 0
 
         if captions is not None and glove_file is not None:
             self.define_corpus_nouns_attributes_and_relations(captions)
-
             self.basic = self.load_glove_embeddings(glove_file)
             self.modif = nn.Embedding(len(self.corpus), 100)
+            self.modif.weight.data.uniform_(-0.1, 0.1)
+            self.modif.weight.data[self.train_corpus_length:] = torch.zeros(
+                (len(self.corpus) - self.train_corpus_length, 100)
+            )
 
     def forward(self, word_ids):
         """
@@ -56,23 +83,30 @@ class VocabularyEncoder(nn.Module):
             return stack
 
         if isinstance(word_ids[0], int):
-            stack = torch.stack([
-                torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
+            stack_basic = torch.stack([
+                self.basic[idx].to(self.device)
                 for idx in word_ids
             ])
+            stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
+            stack = torch.cat([stack_basic, stack_modif], dim=1)
         elif isinstance(word_ids[0], tuple):
-            stack = torch.stack([
-                torch.cat((self.basic[obj_id].to(self.device), self.modif(torch.tensor(attr_id).to(self.device))))
-                for obj_id, attr_id in word_ids
+            stack_basic = torch.stack([
+                self.basic[idx].to(self.device)
+                for idx, _ in word_ids
             ])
+            modif_ids = [idx for _, idx in word_ids]
+            stack_modif = self.modif(torch.tensor(modif_ids).to(self.device))
+            stack = torch.cat([stack_basic, stack_modif], dim=1)
         elif isinstance(word_ids[0], list):
-            stack = torch.stack([
+            stack_basic = torch.stack([
                 torch.stack([
-                    torch.cat((self.basic[idx].to(self.device), self.modif(torch.tensor(idx).to(self.device))))
+                    self.basic[idx].to(self.device)
                     for idx in ids
                 ])
                 for ids in word_ids
             ])
+            stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
+            stack = torch.cat([stack_basic, stack_modif], dim=1)
         else:
             print("WARNING: Unknown input type in vocabulary encoder.")
 
@@ -86,56 +120,42 @@ class VocabularyEncoder(nn.Module):
         """
         # In order to detect nouns, use the following as our dictionary of all possible nouns
         nouns = [x.name().split('.', 1)[0].lower() for x in wn.all_synsets('n')]
-        found_nouns = {}
-        found_relations = []
+        found_nouns = {k: 0 for k in nouns}
+        found_relations = {}
 
         # Parse all captions to list all possible tokens and nouns
         for cap in tqdm(captions, desc="Creating Corpus"):
             tokenized_cap = nltk.word_tokenize(cap.lower())
             for token in tokenized_cap:
-                if token in nouns:
-                    if token in found_nouns:
-                        found_nouns[token] += 1
-                    else:
-                        found_nouns[token] = 1
-                if token not in self.corpus:
-                    self.word_ids[token] = len(self.corpus)
-                    self.corpus.append(token)
+                if token in found_nouns:
+                    found_nouns[token] += 1
+                self.corpus.add_word(token)
 
             graph = self.parser.parse(cap)
 
-            objects = [
-                nltk.word_tokenize(graph["entities"][i]['head'])[0].lower()
+            _ = [
+                self.corpus.add_word(nltk.word_tokenize(graph["entities"][i]['head'])[0].lower())
                 for i in range(len(graph["entities"]))
             ]
-            attributes = [
-                nltk.word_tokenize(graph["entities"][i]['modifiers'][j]['span'])[0].lower()
+            _ = [
+                self.corpus.add_word(nltk.word_tokenize(graph["entities"][i]['modifiers'][j]['span'])[0].lower())
                 for i in range(len(graph["entities"]))
                 for j in range(len(graph["entities"][i]['modifiers']))
                 if graph["entities"][i]['modifiers'][j]['dep'] == 'amod'
                    or graph["entities"][i]['modifiers'][j]['dep'] == 'nummod'
             ]
+
             relations = [
                 nltk.word_tokenize(graph['relations'][i]['relation'])[0].lower()
                 for i in range(len(graph["relations"]))
             ]
 
-            for obj in objects:
-                if obj not in self.corpus:
-                    self.word_ids[obj] = len(self.corpus)
-                    self.corpus.append(obj)
-
-            for attr in attributes:
-                if attr not in self.corpus:
-                    self.word_ids[attr] = len(self.corpus)
-                    self.corpus.append(attr)
-
             for rel in relations:
-                if rel not in found_relations:
-                    found_relations.append(rel)
-                    if rel not in self.corpus:
-                        self.word_ids[rel] = len(self.corpus)
-                        self.corpus.append(rel)
+                if rel in found_relations:
+                    found_relations[rel] += 1
+                else:
+                    found_relations[rel] = 1
+                self.corpus.add_word(rel)
 
         # Used negative attributes are given in their paper
         neg_attr_words = ["white", "black", "red", "green", "brown", "yellow", "orange", "pink", "gray", "grey",
@@ -145,20 +165,22 @@ class VocabularyEncoder(nn.Module):
 
         # Add these negative attributes to token and noun list (orange can be a noun, for example)
         for token in neg_attr_words:
-            if token in nouns:
-                if token in found_nouns:
-                    found_nouns[token] += 1
-                else:
-                    found_nouns[token] = 1
-            if token not in self.corpus:
-                self.word_ids[token] = len(self.corpus)
-                self.corpus.append(token)
+            if token in found_nouns:
+                found_nouns[token] += 1
+            self.corpus.add_word(token)
 
         # Create list of objects, attributes and relations for negative samples
         # Nouns are a special case, as only those that appear 100+ times are counted
-        self.neg_obj = [self.word_ids[k] for k, v in found_nouns.items() if v >= 100]
-        self.neg_attr = [self.word_ids[word] for word in neg_attr_words]
-        self.neg_rel = [self.word_ids[rel] for rel in found_relations]
+        self.neg_obj = [self.corpus.word2idx[k] for k, v in found_nouns.items() if v >= 100]
+        self.neg_attr = [self.corpus.word2idx[word] for word in neg_attr_words]
+        self.neg_rel = [self.corpus.word2idx[rel] for rel in found_relations]
+
+        self.train_corpus_length = len(self.corpus)
+
+        self.corpus.add_word("<unk>")
+        self.corpus.add_word("<start>")
+        self.corpus.add_word("<end>")
+        self.corpus.add_word("<pad>")
 
     def extract_components(self, captions):
         """
@@ -177,11 +199,11 @@ class VocabularyEncoder(nn.Module):
             graph = self.parser.parse(cap)
             cur_obj = graph['entities']
 
-            o = [self.word_ids[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()] for i in range(len(cur_obj))]
+            o = [self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()] for i in range(len(cur_obj))]
             a = [
                 (
-                    self.word_ids[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()],
-                    self.word_ids[nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower()]
+                    self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()],
+                    self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower()]
                 )
                 for i in range(len(cur_obj))
                 for j in range(len(cur_obj[i]['modifiers']))
@@ -190,7 +212,7 @@ class VocabularyEncoder(nn.Module):
             r = [
                 [
                     o[graph['relations'][i]['subject']],
-                    self.word_ids[nltk.word_tokenize(graph['relations'][i]['relation'])[0].lower()],
+                    self.corpus.word2idx[nltk.word_tokenize(graph['relations'][i]['relation'])[0].lower()],
                     o[graph['relations'][i]['object']]
                 ]
                 for i in range(len(graph['relations']))
@@ -212,7 +234,7 @@ class VocabularyEncoder(nn.Module):
 
         # Parse captions in order to get ids of word/tokens
         caption_words = [nltk.word_tokenize(cap.lower()) for cap in captions]
-        components["words"] = [[self.word_ids[w] for w in words] for words in caption_words]
+        components["words"] = [[self.corpus.word2idx[w] for w in words] for words in caption_words]
 
         # Parse captions in order to get their objects, attributes and relations
         components["obj"], components["attr"], components["rel"] = self.extract_components(captions)
@@ -231,15 +253,17 @@ class VocabularyEncoder(nn.Module):
         with open(corpus_file, "rb") as in_f:
             corpus = pickle.load(in_f)
 
+        if len(corpus) != 6:
+            IOError("Vocab_file must have the right format.")
+
         self.corpus = corpus[0]
-        self.word_ids = corpus[1]
 
-        self.neg_obj = corpus[2]
-        self.neg_attr = corpus[3]
-        self.neg_rel = corpus[4]
+        self.basic = corpus[1]
+        self.modif = corpus[2]
 
-        self.basic = corpus[5]
-        self.modif = corpus[6]
+        self.neg_obj = corpus[3]
+        self.neg_attr = corpus[4]
+        self.neg_rel = corpus[5]
 
     def save_corpus(self, corpus_file):
         """
@@ -249,12 +273,11 @@ class VocabularyEncoder(nn.Module):
         self.cpu()
         corpus = [
             self.corpus,
-            self.word_ids,
+            self.basic,
+            self.modif,
             self.neg_obj,
             self.neg_attr,
-            self.neg_rel,
-            self.basic,
-            self.modif
+            self.neg_rel
         ]
         self.to(self.device)
         with open(corpus_file, "wb") as out_f:
@@ -273,7 +296,7 @@ class VocabularyEncoder(nn.Module):
             for line in tqdm(lines, desc="Load GloVe Embeddings"):
                 split_line = line.split(' ')
                 word = split_line[0]
-                if word in self.corpus:
+                if word in self.corpus.word2idx:
                     embedding = np.array([float(val) for val in split_line[1:]])
                     glove[word] = torch.from_numpy(embedding).float()
 
@@ -282,14 +305,20 @@ class VocabularyEncoder(nn.Module):
 
         # Link each token of our vocabulary with glove embeddings.
         # If a token hasn't got an embedding, create one randomly.
-        for word in self.corpus:
+        for word in self.corpus.word2idx.keys():
             try:
                 weights_matrix.append(glove[word])
                 words_found += 1
             except KeyError:
-                weights_matrix.append(torch.from_numpy(np.random.normal(scale=0.6, size=(len(embedding),))).float())
+                weights_matrix.append(torch.zeros(len(embedding)).float())
 
-        print(f"{words_found}/{len(self.corpus)} words in GloVe ({words_found * 100 / len(self.corpus):.2f}%)")
+        for word in glove.keys():
+            if word not in self.corpus.word2idx.keys():
+                self.corpus.add_word(word)
+                weights_matrix.append(glove[word])
+
+        print(f"{words_found}/{self.train_corpus_length} words in GloVe "
+              f"({words_found * 100 / self.train_corpus_length:.2f}%)")
 
         return weights_matrix
 

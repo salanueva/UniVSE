@@ -86,8 +86,8 @@ def evalrank(model_path, vocab_path, data_path, model_type='univse', fold5=False
     img_path, ann_path = data_path
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
     if model_type.startswith("simp"):
-        data_loader = CocoCaptionsSimple(img_path, ann_path, transform=transform,
-                                         target_transform=None, transforms=None, split="test")
+        data_loader = CocoCaptions(img_path, ann_path, transform=transform, target_transform=None, transforms=None,
+                                   split="test")
     else:
         data_loader = CocoCaptions(img_path, ann_path, transform=transform, target_transform=None, transforms=None)
 
