@@ -12,11 +12,16 @@ from models.univse import corpus as univse
 if __name__ == "__main__":
 
     # FIXME: Add argument parser so that directories are given as input parameters of the script
+    """
     glove_dir = "/home/ander/Documentos/Datuak/glove/glove.840B.300d.txt"
     train_images = "/home/ander/Documentos/Datuak/mscoco/train2014"
     train_ann = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_train2014.json"
-    val_images = "/home/ander/Documentos/Datuak/mscoco/val2014"
-    val_ann = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2014.json"
+    """
+    glove_dir = "/gscratch/users/asalaberria009/embeddings/glove.840B.300d.txt"
+    train_images = "/gscratch/users/asalaberria009/datasets/mscoco/train2014"
+    train_ann = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_train2014.json"
+    # val_images = "/home/ander/Documentos/Datuak/mscoco/val2014"
+    # val_ann = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2014.json"
 
     cap_2014 = COCO(train_ann)
     # cap_2017 = COCO(val_ann)
