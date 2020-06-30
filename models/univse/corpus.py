@@ -274,14 +274,14 @@ class VocabularyEncoder(nn.Module):
         corpus = [
             self.corpus,
             self.basic,
-            self.modif,
+            self.modif.cpu(),
             self.neg_obj,
             self.neg_attr,
             self.neg_rel
         ]
-        self.to(self.device)
         with open(corpus_file, "wb") as out_f:
             pickle.dump(corpus, out_f)
+        self.to(self.device)
 
     def load_glove_embeddings(self, glove_file):
         """
