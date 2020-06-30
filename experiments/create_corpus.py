@@ -66,7 +66,7 @@ if __name__ == "__main__":
     else:
         if args.split == "all+vsts":
             data_3, data_4, data_5 = ld.download_and_load_vsts_dataset(
-                v2=True, images=False, root_path="/home/ander/Documentos/Datuak"
+                v2=True, images=False, root_path='/gscratch/users/asalaberria009/datasets/vSTS_v2'
             )
 
     sentences = []
@@ -88,4 +88,4 @@ if __name__ == "__main__":
         voc_encoder = univse.VocabularyEncoder(sentences, glove_dir)
         print(f"Num Objects: {len(voc_encoder.neg_obj)}")
 
-    voc_encoder.save_corpus(os.path.join('/gscratch/users/asalaberria009/datasets', args.filename))
+    voc_encoder.save_corpus(os.path.join('/gscratch/users/asalaberria009/models/univse', args.filename))
