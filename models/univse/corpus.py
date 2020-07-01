@@ -106,7 +106,7 @@ class VocabularyEncoder(nn.Module):
                 for ids in word_ids
             ])
             stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
-            stack = torch.cat([stack_basic, stack_modif], dim=1)
+            stack = torch.cat([stack_basic, stack_modif], dim=2)
         else:
             print("WARNING: Unknown input type in vocabulary encoder.")
 
