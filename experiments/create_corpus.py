@@ -15,7 +15,7 @@ from models.univse import corpus as univse
 
 def parse_args():
 
-    parser = argparse.ArgumentParser(description='Pretrain a given VSE model with MS-COCO dataset')
+    parser = argparse.ArgumentParser(description='Create corpus for UniVSE model.')
 
     parser.add_argument(
         "--split",
