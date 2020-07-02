@@ -194,12 +194,12 @@ class VocabularyEncoder(nn.Module):
         self.neg_attr = [self.corpus.word2idx[word] for word in neg_attr_words]
         self.neg_rel = [self.corpus.word2idx[rel] for rel in found_relations]
 
-        self.train_corpus_length = len(self.corpus)
-
         self.corpus.add_word("<unk>")
         self.corpus.add_word("<start>")
         self.corpus.add_word("<end>")
         self.corpus.add_word("<pad>")
+
+        self.train_corpus_length = len(self.corpus)
 
     def extract_components(self, captions):
         """
