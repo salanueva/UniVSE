@@ -108,6 +108,11 @@ def parse_args():
         help='Path of the file with vocabulary and pre-trained embeddings.'
     )
     parser.add_argument(
+        "--graph-file",
+        type=str,
+        help='Path of the file with precomputed scene graphs of different captions.'
+    )
+    parser.add_argument(
         "--output-path",
         type=str,
         help='Path for output files.'
@@ -155,6 +160,7 @@ def main():
             model = simp_univse.UniVSE.from_filename(args.vocab_file)
         else:
             model = univse.UniVSE.from_filename(args.vocab_file)
+            model.vocabulary_encoder.add_graphs(args.graph_file)
         # Randomize modifier
         model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100)
         model.vocabulary_encoder.modif.weight.data.uniform_(-0.1, 0.1)

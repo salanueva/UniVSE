@@ -46,9 +46,8 @@ if __name__ == "__main__":
 
     # FIXME: Change argument parser so that directories are given as input parameters of the script
     glove_dir = "/gscratch/users/asalaberria009/embeddings/glove.840B.300d.txt"
-    train_images = "/gscratch/users/asalaberria009/datasets/mscoco/train2014"
+    graph_dir = "/gscratch/users/asalaberria009/models/univse/corpus/scene_graphs.pickle"
     train_ann = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_train2014.json"
-    val_images = "/gscratch/users/asalaberria009/datasets/mscoco/val2014"
     val_ann = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_val2014.json"
 
     sentences = []
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     if args.simple:
         voc_encoder = simp_univse.VocabularyEncoder(sentences, glove_dir)
     else:
-        voc_encoder = univse.VocabularyEncoder(sentences, glove_dir)
+        voc_encoder = univse.VocabularyEncoder(sentences, glove_dir, graph_dir)
         print(f"Num Objects: {len(voc_encoder.neg_obj)}")
 
     voc_encoder.save_corpus(os.path.join('/gscratch/users/asalaberria009/models/univse', args.filename))

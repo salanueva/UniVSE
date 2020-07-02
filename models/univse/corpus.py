@@ -60,6 +60,8 @@ class VocabularyEncoder(nn.Module):
         self.neg_attr = []
         self.neg_rel = []
 
+        self.graphs = {}
+
         self.train_corpus_length = 0
 
         if captions is not None and glove_file is not None:
@@ -112,6 +114,20 @@ class VocabularyEncoder(nn.Module):
 
         return stack
 
+    def add_graphs(self, graph_file):
+        """
+        Loads file with a dictionary where keys are captions and their values are their
+        corresponding scene graphs
+        :param graph_file: pickle file containing graphs extracted from Scene Graph Parser
+        """
+        with open(graph_file, "rb") as in_f:
+            if len(self.graphs.keys()) == 0:
+                self.graphs = pickle.load(in_f)
+            else:
+                aux_graphs = pickle.load(in_f)
+                for k, v in aux_graphs.items():
+                    self.graphs[k] = v
+
     def define_corpus_nouns_attributes_and_relations(self, captions):
         """
         It parses all captions that will be used, detect which tokens will be needed and define
@@ -131,7 +147,10 @@ class VocabularyEncoder(nn.Module):
                     found_nouns[token] += 1
                 self.corpus.add_word(token)
 
-            graph = self.parser.parse(cap)
+            if cap in self.graphs:
+                graph = self.graphs[cap]
+            else:
+                graph = self.parser.parse(cap)
 
             _ = [
                 self.corpus.add_word(nltk.word_tokenize(graph["entities"][i]['head'])[0].lower())
@@ -196,7 +215,11 @@ class VocabularyEncoder(nn.Module):
         # Parse each caption and append its objects, attributes and relations to the output lists
         for cap in captions:
 
-            graph = self.parser.parse(cap)
+            if cap in self.graphs:
+                graph = self.graphs[cap]
+            else:
+                graph = self.parser.parse(cap)
+
             cur_obj = graph['entities']
 
             o = [self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()] for i in range(len(cur_obj))]
@@ -253,9 +276,6 @@ class VocabularyEncoder(nn.Module):
         with open(corpus_file, "rb") as in_f:
             corpus = pickle.load(in_f)
 
-        if len(corpus) != 6:
-            IOError("Vocab_file must have the right format.")
-
         self.corpus = corpus[0]
 
         self.basic = corpus[1]
@@ -270,7 +290,6 @@ class VocabularyEncoder(nn.Module):
         Saves vocabulary encoder object in pickle file
         :param corpus_file: path for pickle file
         """
-        self.cpu()
         corpus = [
             self.corpus,
             self.basic,
@@ -281,7 +300,6 @@ class VocabularyEncoder(nn.Module):
         ]
         with open(corpus_file, "wb") as out_f:
             pickle.dump(corpus, out_f)
-        self.to(self.device)
 
     def load_glove_embeddings(self, glove_file):
         """
