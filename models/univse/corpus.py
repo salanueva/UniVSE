@@ -213,9 +213,9 @@ class VocabularyEncoder(nn.Module):
         attributes = []
         relations = []
 
-        num_obj = torch.zeros(len(captions), dtype=torch.int)
-        num_attr = torch.zeros(len(captions), dtype=torch.int)
-        num_rel = torch.zeros(len(captions), dtype=torch.int)
+        num_obj = [0] * len(captions)
+        num_attr = [0] * len(captions)
+        num_rel = [0] * len(captions)
 
         # Parse each caption and append its objects, attributes and relations to the output lists
         for k, cap in enumerate(captions):
@@ -368,39 +368,51 @@ class VocabularyEncoder(nn.Module):
         :return: updated components dictionary with negative samples of objects, attributes and relations
         """
 
+        num_obj = min([16, len(self.neg_obj) - 1])
+        if num_obj < 16:
+            print(f"ERROR: At least 17 negative objects are needed (we have {num_obj}).")
+            exit(0)
+
+        num_attr_n = 8
+        num_attr_a = min([8, len(self.neg_attr) - 1])
+        if num_attr_a < 8:
+            print(f"ERROR: At least 9 negative attributes are needed (we have {num_attr_a}).")
+            exit(0)
+
+        num_rel = min([4, len(self.neg_rel) - 1])
+        if num_rel < 4:
+            print(f"ERROR: At least 5 negative relations are needed (we have {num_rel}).")
+            exit(0)
+
         # Generate Negative Objects
         # 16 negative samples for each positive object
         neg_objects = []
-        num_obj = torch.zeros(len(components["obj"]), dtype=torch.int)
 
         for i, obj in enumerate(components["obj"]):
-            rand_obj = random.sample(self.neg_obj, min([16, len(self.neg_obj)]))
+            rand_obj = random.sample(self.neg_obj, num_obj)
             while obj in rand_obj:
                 ind = rand_obj.index(obj)
                 rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
-            num_obj[i] = len(rand_obj)
             neg_objects += rand_obj
 
         # Generate Negative Attributes
         # 16 negative samples for each positive object-attribute pair:
         neg_attributes_noun = []  # 8 changing its object
         neg_attributes_attr = []  # Another 8 changing its attribute
-        num_attr_n = torch.zeros(len(components["attr"]), dtype=torch.int)
-        num_attr_a = torch.zeros(len(components["attr"]), dtype=torch.int)
 
         for i, (obj, attr) in enumerate(components["attr"]):
-            rand_obj = random.sample(self.neg_obj, min([8, len(self.neg_obj)]))
+
+            rand_obj = random.sample(self.neg_obj, 8)
             while obj in rand_obj:
                 ind = rand_obj.index(obj)
                 rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
-            num_attr_n[i] = len(rand_obj)
-            neg_attributes_noun += [(r_o, attr) for r_o in rand_obj]
 
             rand_attr = random.sample(self.neg_attr, min([8, len(self.neg_attr)]))
             while attr in rand_attr:
                 ind = rand_attr.index(attr)
                 rand_attr[ind] = random.sample(self.neg_attr, 1)[0]
-            num_attr_a[i] = len(rand_attr)
+
+            neg_attributes_noun += [(r_o, attr) for r_o in rand_obj]
             neg_attributes_attr += [(obj, r_a) for r_a in rand_attr]
 
         # Generate Negative Relations
@@ -408,20 +420,19 @@ class VocabularyEncoder(nn.Module):
         # All types grouped in the following list
         # 2 changing its noun, 4 changing its relation and another 2 changing its object
         neg_relations = []
-        num_rel = torch.zeros(len(components["rel"]), dtype=torch.int)
 
         for i, (sub, rel, obj) in enumerate(components["rel"]):
-            rand_sub = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
+            rand_sub = random.sample(self.neg_obj, 2)
             while sub in rand_sub:
                 ind = rand_sub.index(sub)
                 rand_sub[ind] = random.sample(self.neg_obj, 1)[0]
 
-            rand_rel = random.sample(self.neg_rel, min([4, len(self.neg_rel)]))
+            rand_rel = random.sample(self.neg_rel, 4)
             while rel in rand_rel:
                 ind = rand_rel.index(rel)
                 rand_rel[ind] = random.sample(self.neg_rel, 1)[0]
 
-            rand_obj = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
+            rand_obj = random.sample(self.neg_obj, 2)
             while obj in rand_obj:
                 ind = rand_obj.index(obj)
                 rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
@@ -429,13 +440,12 @@ class VocabularyEncoder(nn.Module):
             neg_rel = [[r_s, rel, obj] for r_s in rand_sub] + \
                       [[sub, r_r, obj] for r_r in rand_rel] + \
                       [[sub, rel, r_o] for r_o in rand_sub]
-            num_rel[i] = len(neg_rel)
             neg_relations += neg_rel
 
         components["num_neg_obj"] = num_obj
         components["num_neg_attr_n"] = num_attr_n
         components["num_neg_attr_a"] = num_attr_a
-        components["num_neg_rel"] = num_rel
+        components["num_neg_rel"] = 2 + num_rel + 2
 
         components["neg_obj"] = neg_objects
         components["neg_attr_n"] = neg_attributes_noun

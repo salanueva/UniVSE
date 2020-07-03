@@ -14,55 +14,6 @@ from models.univse import loss
 from models.univse import corpus
 
 
-# HELPER FUNCTIONS (for unflattening purposes)
-def unflatten_pos_embeddings(embeddings, num_per_caption):
-    """
-    Separate positive objects, attributes or relations per caption
-    :param embeddings: tensor of computed embeddings, not separated by captions
-    :param num_per_caption: information about how many objects, attributes or relations
-    can be found on each caption
-    :return: list of tensors, one tensor per caption
-    """
-    start, end = 0, 0
-    unflattened_pos = []
-    for num in num_per_caption:
-        end += num
-        if num == 0:
-            unflattened_pos.append(None)
-        else:
-            unflattened_pos.append(embeddings[start:end])
-        start = end
-    return unflattened_pos
-
-
-def unflatten_neg_embeddings(embeddings, num_pos_per_caption, num_neg_per_caption):
-    """
-    Separate negative objects, attributes or relations per caption and positive instances
-    :param embeddings: tensor of computed embeddings, not separated by captions and positive instances
-    :param num_pos_per_caption: information about how many objects, attributes or relations
-    can be found on each captions
-    :param num_neg_per_caption: information about how many negative instances
-    can be found for each positive instance
-    :return: list of lists of tensors, one tensor per negative instance
-    """
-    start, end = 0, 0
-    start_b, end_b = 0, 0
-    unflattened_neg = []
-    for num in num_pos_per_caption:
-        end_b += num
-        current_neg = []
-        for num_neg in num_neg_per_caption[start_b:end_b]:
-            end += num_neg
-            current_neg.append(embeddings[start:end])
-            start = end
-        start_b = end_b
-        if len(current_neg) == 0:
-            unflattened_neg.append(None)
-        else:
-            unflattened_neg.append(torch.cat(current_neg, dim=0))
-    return unflattened_neg
-
-
 # MODEL SUBCLASSES
 class ObjectEncoder(nn.Module):
     """
@@ -313,6 +264,47 @@ class UniVSE(nn.Module):
         self.image_encoder.eval()
         self.inference = True
 
+    def unflatten_pos_embeddings(self, embeddings, num_per_caption):
+        """
+        Separate positive objects, attributes or relations per caption
+        :param embeddings: tensor of computed embeddings, not separated by captions
+        :param num_per_caption: information about how many objects, attributes or relations
+        can be found on each caption
+        :return: list of tensors, one tensor per caption
+        """
+        start, end = 0, 0
+        unflattened_pos = []
+        for num in num_per_caption:
+            end += num
+            if num == 0:
+                unflattened_pos.append(None)
+            else:
+                unflattened_pos.append(embeddings[start:end].view(-1, self.hidden_size))
+            start = end
+        return unflattened_pos
+
+    def unflatten_neg_embeddings(self, embeddings, num_pos_per_caption, num_neg_per_caption):
+        """
+        Separate negative objects, attributes or relations per caption and positive instances
+        :param embeddings: tensor of computed embeddings, not separated by captions and positive instances
+        :param num_pos_per_caption: information about how many objects, attributes or relations
+        can be found on each captions
+        :param num_neg_per_caption: number of negative instances per positive instance
+        :return: list of lists of tensors, one tensor per negative instance
+        """
+        start, end = 0, 0
+        unflattened_neg = []
+        for num_pos in num_pos_per_caption:
+            end += num_pos * num_neg_per_caption
+            # print(f"S: {start}\t E: {end}")
+            if num_pos == 0:
+                unflattened_neg.append(None)
+            else:
+                unflattened_neg.append(embeddings[start:end].view(num_pos, num_neg_per_caption, self.hidden_size))
+                # print(unflattened_neg[-1].size())
+            start = end
+        return unflattened_neg
+
     def forward(self, images, captions):
         """
         Makes a forward pass given a batch of images and captions
@@ -392,20 +384,20 @@ class UniVSE(nn.Module):
         embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
 
         # Unflatten objects, attributes and relations (both positives and negatives), in order to ease loss computations
-        embeddings["obj_emb"] = unflatten_pos_embeddings(embeddings["obj_emb"], components["num_obj"])
-        embeddings["attr_emb"] = unflatten_pos_embeddings(embeddings["attr_emb"], components["num_attr"])
-        embeddings["rel_emb"] = unflatten_pos_embeddings(embeddings["rel_emb"], components["num_obj"])
+        embeddings["obj_emb"] = self.unflatten_pos_embeddings(embeddings["obj_emb"], components["num_obj"])
+        embeddings["attr_emb"] = self.unflatten_pos_embeddings(embeddings["attr_emb"], components["num_attr"])
+        embeddings["rel_emb"] = self.unflatten_pos_embeddings(embeddings["rel_emb"], components["num_obj"])
 
-        embeddings["neg_obj_emb"] = unflatten_neg_embeddings(
+        embeddings["neg_obj_emb"] = self.unflatten_neg_embeddings(
             embeddings["neg_obj_emb"], components["num_obj"], components["num_neg_obj"]
         )
-        embeddings["neg_attr_n_emb"] = unflatten_neg_embeddings(
-            embeddings["neg_attr_n_emb"], components["num_neg_attr_n"], components["num_neg_attr_n"]
+        embeddings["neg_attr_n_emb"] = self.unflatten_neg_embeddings(
+            embeddings["neg_attr_n_emb"], components["num_attr"], components["num_neg_attr_n"]
         )
-        embeddings["neg_attr_a_emb"] = unflatten_neg_embeddings(
-            embeddings["neg_attr_a_emb"], components["num_neg_attr_a"], components["num_neg_attr_a"]
+        embeddings["neg_attr_a_emb"] = self.unflatten_neg_embeddings(
+            embeddings["neg_attr_a_emb"], components["num_attr"], components["num_neg_attr_a"]
         )
-        embeddings["neg_rel_emb"] = unflatten_neg_embeddings(
+        embeddings["neg_rel_emb"] = self.unflatten_neg_embeddings(
             embeddings["neg_rel_emb"], components["num_rel"], components["num_neg_rel"]
         )
 

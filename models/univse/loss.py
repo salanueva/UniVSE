@@ -244,7 +244,7 @@ class UniVSELoss(nn.Module):
         img_emb_samp = []
         rel_emb_samp = []
         for img, rel in zip(embeddings["img_emb"], embeddings["rel_emb"]):
-            if rel is not None:
+            if rel is not None and rel.size(0) != 0:
                 img_emb_samp.append(img.view(1, -1))
                 i = np.random.randint(rel.size(0), size=1)[0]
                 rel_emb_samp.append(rel[i].view(1, -1))
