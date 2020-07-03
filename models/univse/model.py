@@ -172,7 +172,7 @@ class UniVSE(nn.Module):
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
         # Debug values (in order to find bottlenecks)
-        self.times = {"images": 0.0, "input": 0.0, "vocab": 0.0, "object": 0.0, "neural": 0.0, "comp": 0.0,
+        self.times = {"image": 0.0, "input": 0.0, "vocab": 0.0, "object": 0.0, "neural": 0.0, "comp": 0.0,
                       "unflatten": 0.0, "loss": 0.0, "n": 0}
 
     @classmethod

@@ -263,7 +263,7 @@ def main():
                         t_file.write(f"Unflat: {model.times['unflatten'] * 1000 / model.times['n']} ms\n")
                         t_file.write(f"Loss:   {model.times['loss'] * 1000 / model.times['n']} ms\n")
                         t_file.write(f"\n")
-                
+
                 if phase == "dev":
                     aux_count = count + embeddings["sent_emb"].size(0)
                     img_embeddings[count:aux_count] = embeddings["img_emb"].data.cpu().numpy().copy()
