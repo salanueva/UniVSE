@@ -6,6 +6,7 @@ import numpy as np
 import os
 import pickle
 import sys
+import time
 from tqdm import tqdm
 
 import torch
@@ -244,8 +245,25 @@ def main():
 
                 sentences = list(sent)
                 embeddings = model(img, sentences)
-                total_loss, _ = model.criterion(embeddings)
 
+                time_start = time.time()
+                total_loss, _ = model.criterion(embeddings)
+                model.times["loss"] += time.time() - time_start
+
+                # ####### DEBUG ######## #
+                if idx % 100 == 1:
+                    with open("times.txt", "a+") as t_file:
+                        t_file.write(f" # EPOCH {epoch}\t# BATCH {idx} #\n")
+                        t_file.write(f"Image:  {model.times['image'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Input:  {model.times['input'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Vocab:  {model.times['vocab'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Object: {model.times['object'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Neural: {model.times['neural'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Compos: {model.times['comp'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Unflat: {model.times['unflatten'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"Loss:   {model.times['loss'] * 1000 / model.times['n']} ms\n")
+                        t_file.write(f"\n")
+                
                 if phase == "dev":
                     aux_count = count + embeddings["sent_emb"].size(0)
                     img_embeddings[count:aux_count] = embeddings["img_emb"].data.cpu().numpy().copy()

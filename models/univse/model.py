@@ -1,4 +1,5 @@
 import pickle
+import time
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
@@ -170,6 +171,10 @@ class UniVSE(nn.Module):
         self.inference = True
         self.device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
+        # Debug values (in order to find bottlenecks)
+        self.times = {"images": 0.0, "input": 0.0, "vocab": 0.0, "object": 0.0, "neural": 0.0, "comp": 0.0,
+                      "unflatten": 0.0, "loss": 0.0, "n": 0}
+
     @classmethod
     def from_captions(cls, captions, glove_file, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
                       train_cnn=False):
@@ -315,12 +320,19 @@ class UniVSE(nn.Module):
         embeddings = {}
 
         # IMAGES
+        time_start = time.time()
         images = images.to(self.device)
         embeddings["img_emb"], embeddings["img_feat_emb"] = self.image_encoder(images)
+        time_end = time.time()
+        self.times["images"] += time_end - time_start
+        time_start = time_end
 
         # TEXT
         # Extract ids of tokens from each sentence, including negative samples
         components = self.vocabulary_encoder.get_components(captions)
+        time_end = time.time()
+        self.times["input"] += time_end - time_start
+        time_start = time_end
 
         # Get embeddings from those ids with the VocabularyEncoder
         embeddings["sent_emb"] = self.vocabulary_encoder(components["words"]).to(self.device)
@@ -333,6 +345,9 @@ class UniVSE(nn.Module):
         embeddings["neg_attr_n_emb"] = self.vocabulary_encoder(components["neg_attr_n"]).to(self.device)
         embeddings["neg_attr_a_emb"] = self.vocabulary_encoder(components["neg_attr_a"]).to(self.device)
         embeddings["neg_rel_emb"] = self.vocabulary_encoder(components["neg_rel"]).to(self.device)
+        time_end = time.time()
+        self.times["vocab"] += time_end - time_start
+        time_start = time_end
 
         # Use Object Encoder to compute their embeddings in the UniVSE space
         embeddings["sent_emb"] = self.object_encoder(embeddings["sent_emb"])
@@ -345,6 +360,9 @@ class UniVSE(nn.Module):
         embeddings["neg_attr_n_emb"] = self.object_encoder(embeddings["neg_attr_n_emb"])
         embeddings["neg_attr_a_emb"] = self.object_encoder(embeddings["neg_attr_a_emb"])
         embeddings["neg_rel_emb"] = self.object_encoder(embeddings["neg_rel_emb"])
+        time_end = time.time()
+        self.times["object"] += time_end - time_start
+        time_start = time_end
 
         # Relations and captions must be processed more with the Neural Combiner (RNN)
         embeddings["rel_emb"] = self.neural_combiner(
@@ -362,6 +380,9 @@ class UniVSE(nn.Module):
             padded_emb[i, :num, :] = embeddings["sent_emb"][start:end]
             start = end
         embeddings["sent_emb"] = self.neural_combiner(padded_emb, torch.tensor(components["num_words"]))
+        time_end = time.time()
+        self.times["neural"] += time_end - time_start
+        time_start = time_end
 
         # Compute Component Embedding aggregating object, attribute and relation embeddings
         start_o, start_a, start_r = 0, 0, 0
@@ -379,6 +400,9 @@ class UniVSE(nn.Module):
             start_r = end_r
         norm_aggregation = f.normalize(aggregation, dim=1, p=2)
         embeddings["comp_emb"] = norm_aggregation
+        time_end = time.time()
+        self.times["comp"] += time_end - time_start
+        time_start = time_end
 
         # Compute Caption Embedding using alpha (alpha is not trainable)
         embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
@@ -400,5 +424,10 @@ class UniVSE(nn.Module):
         embeddings["neg_rel_emb"] = self.unflatten_neg_embeddings(
             embeddings["neg_rel_emb"], components["num_rel"], components["num_neg_rel"]
         )
+
+        time_end = time.time()
+        self.times["unflatten"] += time_end - time_start
+
+        self.times["n"] += 1
 
         return embeddings
