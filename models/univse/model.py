@@ -324,7 +324,7 @@ class UniVSE(nn.Module):
         images = images.to(self.device)
         embeddings["img_emb"], embeddings["img_feat_emb"] = self.image_encoder(images)
         time_end = time.time()
-        self.times["images"] += time_end - time_start
+        self.times["image"] += time_end - time_start
         time_start = time_end
 
         # TEXT
