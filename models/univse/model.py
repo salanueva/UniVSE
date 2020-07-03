@@ -59,7 +59,7 @@ def unflatten_neg_embeddings(embeddings, num_pos_per_caption, num_neg_per_captio
         if len(current_neg) == 0:
             unflattened_neg.append(None)
         else:
-            unflattened_neg.append(current_neg)
+            unflattened_neg.append(torch.cat(current_neg, dim=0))
     return unflattened_neg
 
 
