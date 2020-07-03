@@ -160,8 +160,8 @@ class VocabularyEncoder(nn.Module):
                 self.corpus.add_word(nltk.word_tokenize(graph["entities"][i]['modifiers'][j]['span'])[0].lower())
                 for i in range(len(graph["entities"]))
                 for j in range(len(graph["entities"][i]['modifiers']))
-                if graph["entities"][i]['modifiers'][j]['dep'] == 'amod'
-                   or graph["entities"][i]['modifiers'][j]['dep'] == 'nummod'
+                if graph["entities"][i]['modifiers'][j]['dep'] == 'amod' or
+                graph["entities"][i]['modifiers'][j]['dep'] == 'nummod'
             ]
 
             relations = [
@@ -205,15 +205,20 @@ class VocabularyEncoder(nn.Module):
         """
         Given a list of sentences, extract objects, attributes and relations that appear on them
         :param captions: list of sentences/captions
-        :return: three elements: list of objects, list of attributes and list of relations
-        (each element in a list is grouped in sentences)
+        :return: dictionary with extracted objects, attributes and relations
         """
+        components = {}
+
         objects = []
         attributes = []
         relations = []
 
+        num_obj = torch.zeros(len(captions), dtype=torch.int)
+        num_attr = torch.zeros(len(captions), dtype=torch.int)
+        num_rel = torch.zeros(len(captions), dtype=torch.int)
+
         # Parse each caption and append its objects, attributes and relations to the output lists
-        for cap in captions:
+        for k, cap in enumerate(captions):
 
             if cap in self.graphs:
                 graph = self.graphs[cap]
@@ -241,11 +246,23 @@ class VocabularyEncoder(nn.Module):
                 for i in range(len(graph['relations']))
             ]
 
-            objects.append(o)
-            attributes.append(a)
-            relations.append(r)
+            num_obj[k] = len(o)
+            num_attr[k] = len(a)
+            num_rel[k] = len(r)
 
-        return objects, attributes, relations
+            objects += o
+            attributes += a
+            relations += r
+
+        components["obj"] = objects
+        components["attr"] = attributes
+        components["rel"] = relations
+
+        components["num_obj"] = num_obj
+        components["num_attr"] = num_attr
+        components["num_rel"] = num_rel
+
+        return components
 
     def get_components(self, captions):
         """
@@ -253,18 +270,22 @@ class VocabularyEncoder(nn.Module):
         :param captions: list of sentences/captions
         :return: dictionary with all ids, both positive and negative samples
         """
-        components = {}
-
-        # Parse captions in order to get ids of word/tokens
-        caption_words = [nltk.word_tokenize(cap.lower()) for cap in captions]
-        components["words"] = [[self.corpus.word2idx[w] for w in words] for words in caption_words]
 
         # Parse captions in order to get their objects, attributes and relations
-        components["obj"], components["attr"], components["rel"] = self.extract_components(captions)
+        components = self.extract_components(captions)
 
         # Generate negative instances for objects, attributes and relations
-        components["n_obj"], components["n_attr_n"], components["n_attr_a"], components["n_rel"] = \
-            self.negative_instances(components["obj"], components["attr"], components["rel"])
+        components = self.negative_instances(components)
+
+        # Parse captions in order to get ids of word/tokens
+        caption_words = [["<start>"] + nltk.word_tokenize(cap.lower()) + ["<end>"] for cap in captions]
+        caption_word_ids = [[self.corpus.word2idx[w] for w in words] for words in caption_words]
+        components["num_words"] = [len(words) for words in caption_words]
+        components["max_words"] = max(components["num_words"])
+        flatten_words = []
+        for word_ids in caption_word_ids:
+            flatten_words += word_ids
+        components["words"] = flatten_words
 
         return components
 
@@ -340,83 +361,85 @@ class VocabularyEncoder(nn.Module):
 
         return weights_matrix
 
-    def negative_instances(self, objects, attributes, relations):
+    def negative_instances(self, components):
         """
         Given lists of objects, attributes and relations, generates their random negative samples.
-        :param objects: list of objects grouped by sentences
-        :param attributes: list of objects grouped by attributes
-        :param relations: list of objects grouped by relations
-        :return: three lists containing negative samples of objects, attributes and relations
+        :param components: dictionary with lists of objects, attributes and relations
+        :return: updated components dictionary with negative samples of objects, attributes and relations
         """
 
         # Generate Negative Objects
         # 16 negative samples for each positive object
         neg_objects = []
-        for caption in objects:
-            neg_obj_in_cap = []
-            for obj in caption:
-                rand_obj = random.sample(self.neg_obj, min([16, len(self.neg_obj)]))
-                while obj in rand_obj:
-                    ind = rand_obj.index(obj)
-                    rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
-                neg_obj_in_cap.append(rand_obj)
-            neg_objects.append(neg_obj_in_cap)
+        num_obj = torch.zeros(len(components["obj"]), dtype=torch.int)
+
+        for i, obj in enumerate(components["obj"]):
+            rand_obj = random.sample(self.neg_obj, min([16, len(self.neg_obj)]))
+            while obj in rand_obj:
+                ind = rand_obj.index(obj)
+                rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
+            num_obj[i] = len(rand_obj)
+            neg_objects += rand_obj
 
         # Generate Negative Attributes
         # 16 negative samples for each positive object-attribute pair:
         neg_attributes_noun = []  # 8 changing its object
         neg_attributes_attr = []  # Another 8 changing its attribute
+        num_attr_n = torch.zeros(len(components["attr"]), dtype=torch.int)
+        num_attr_a = torch.zeros(len(components["attr"]), dtype=torch.int)
 
-        for caption in attributes:
-            neg_attr_n_in_cap = []
-            neg_attr_a_in_cap = []
+        for i, (obj, attr) in enumerate(components["attr"]):
+            rand_obj = random.sample(self.neg_obj, min([8, len(self.neg_obj)]))
+            while obj in rand_obj:
+                ind = rand_obj.index(obj)
+                rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
+            num_attr_n[i] = len(rand_obj)
+            neg_attributes_noun += [(r_o, attr) for r_o in rand_obj]
 
-            for obj, attr in caption:
-                rand_obj = random.sample(self.neg_obj, min([8, len(self.neg_obj)]))
-                while obj in rand_obj:
-                    ind = rand_obj.index(obj)
-                    rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
-                neg_attr_n_in_cap.append([(r_o, attr) for r_o in rand_obj])
-
-                rand_attr = random.sample(self.neg_attr, min([8, len(self.neg_attr)]))
-                while attr in rand_attr:
-                    ind = rand_attr.index(attr)
-                    rand_attr[ind] = random.sample(self.neg_attr, 1)[0]
-                neg_attr_a_in_cap.append([(obj, r_a) for r_a in rand_attr])
-
-            neg_attributes_noun.append(neg_attr_n_in_cap)
-            neg_attributes_attr.append(neg_attr_a_in_cap)
+            rand_attr = random.sample(self.neg_attr, min([8, len(self.neg_attr)]))
+            while attr in rand_attr:
+                ind = rand_attr.index(attr)
+                rand_attr[ind] = random.sample(self.neg_attr, 1)[0]
+            num_attr_a[i] = len(rand_attr)
+            neg_attributes_attr += [(obj, r_a) for r_a in rand_attr]
 
         # Generate Negative Relations
         # 8 negative relation for each positive relation
         # All types grouped in the following list
         # 2 changing its noun, 4 changing its relation and another 2 changing its object
         neg_relations = []
+        num_rel = torch.zeros(len(components["rel"]), dtype=torch.int)
 
-        for caption in relations:
-            neg_rel_in_cap = []
+        for i, (sub, rel, obj) in enumerate(components["rel"]):
+            rand_sub = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
+            while sub in rand_sub:
+                ind = rand_sub.index(sub)
+                rand_sub[ind] = random.sample(self.neg_obj, 1)[0]
 
-            for sub, rel, obj in caption:
-                rand_sub = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
-                while sub in rand_sub:
-                    ind = rand_sub.index(sub)
-                    rand_sub[ind] = random.sample(self.neg_obj, 1)[0]
+            rand_rel = random.sample(self.neg_rel, min([4, len(self.neg_rel)]))
+            while rel in rand_rel:
+                ind = rand_rel.index(rel)
+                rand_rel[ind] = random.sample(self.neg_rel, 1)[0]
 
-                rand_rel = random.sample(self.neg_rel, min([4, len(self.neg_rel)]))
-                while rel in rand_rel:
-                    ind = rand_rel.index(rel)
-                    rand_rel[ind] = random.sample(self.neg_rel, 1)[0]
+            rand_obj = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
+            while obj in rand_obj:
+                ind = rand_obj.index(obj)
+                rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
 
-                rand_obj = random.sample(self.neg_obj, min([2, len(self.neg_obj)]))
-                while obj in rand_obj:
-                    ind = rand_obj.index(obj)
-                    rand_obj[ind] = random.sample(self.neg_obj, 1)[0]
+            neg_rel = [[r_s, rel, obj] for r_s in rand_sub] + \
+                      [[sub, r_r, obj] for r_r in rand_rel] + \
+                      [[sub, rel, r_o] for r_o in rand_sub]
+            num_rel[i] = len(neg_rel)
+            neg_relations += neg_rel
 
-                neg_rel = [[r_s, rel, obj] for r_s in rand_sub] + \
-                          [[sub, r_r, obj] for r_r in rand_rel] + \
-                          [[sub, rel, r_o] for r_o in rand_sub]
-                neg_rel_in_cap.append(neg_rel)
+        components["num_neg_obj"] = num_obj
+        components["num_neg_attr_n"] = num_attr_n
+        components["num_neg_attr_a"] = num_attr_a
+        components["num_neg_rel"] = num_rel
 
-            neg_relations.append(neg_rel_in_cap)
+        components["neg_obj"] = neg_objects
+        components["neg_attr_n"] = neg_attributes_noun
+        components["neg_attr_a"] = neg_attributes_attr
+        components["neg_rel"] = neg_relations
 
-        return neg_objects, neg_attributes_noun, neg_attributes_attr, neg_relations
+        return components

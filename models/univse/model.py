@@ -1,4 +1,3 @@
-import numpy as np
 import pickle
 import torch
 from torch.autograd import Variable
@@ -7,7 +6,6 @@ import torch.nn.functional as f
 import torch.nn.init
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 import torchvision
-from torchvision import transforms
 import os
 import sys
 
@@ -16,6 +14,56 @@ from models.univse import loss
 from models.univse import corpus
 
 
+# HELPER FUNCTIONS (for unflattening purposes)
+def unflatten_pos_embeddings(embeddings, num_per_caption):
+    """
+    Separate positive objects, attributes or relations per caption
+    :param embeddings: tensor of computed embeddings, not separated by captions
+    :param num_per_caption: information about how many objects, attributes or relations
+    can be found on each caption
+    :return: list of tensors, one tensor per caption
+    """
+    start, end = 0, 0
+    unflattened_pos = []
+    for num in num_per_caption:
+        end += num
+        if num == 0:
+            unflattened_pos.append(None)
+        else:
+            unflattened_pos.append(embeddings[start:end])
+        start = end
+    return unflattened_pos
+
+
+def unflatten_neg_embeddings(embeddings, num_pos_per_caption, num_neg_per_caption):
+    """
+    Separate negative objects, attributes or relations per caption and positive instances
+    :param embeddings: tensor of computed embeddings, not separated by captions and positive instances
+    :param num_pos_per_caption: information about how many objects, attributes or relations
+    can be found on each captions
+    :param num_neg_per_caption: information about how many negative instances
+    can be found for each positive instance
+    :return: list of lists of tensors, one tensor per negative instance
+    """
+    start, end = 0, 0
+    start_b, end_b = 0, 0
+    unflattened_neg = []
+    for num in num_pos_per_caption:
+        end_b += num
+        current_neg = []
+        for num_neg in num_neg_per_caption[start_b:end_b]:
+            end += num_neg
+            current_neg.append(embeddings[start:end])
+            start = end
+        start_b = end_b
+        if len(current_neg) == 0:
+            unflattened_neg.append(None)
+        else:
+            unflattened_neg.append(current_neg)
+    return unflattened_neg
+
+
+# MODEL SUBCLASSES
 class ObjectEncoder(nn.Module):
     """
     Combines basic semantic embeddings (GloVe) and modifier semantic embeddings
@@ -235,7 +283,7 @@ class UniVSE(nn.Module):
         with open(model_file, "wb") as out_f:
             pickle.dump(model_data, out_f)
 
-    def change_device(self, device):
+    def to_device(self, device):
         """
         Set model to cpu or gpu
         :param device: torch.device() object
@@ -274,7 +322,6 @@ class UniVSE(nn.Module):
         """
         embeddings = {}
 
-        # FORWARD PASS
         # IMAGES
         images = images.to(self.device)
         embeddings["img_emb"], embeddings["img_feat_emb"] = self.image_encoder(images)
@@ -282,187 +329,84 @@ class UniVSE(nn.Module):
         # TEXT
         # Extract ids of tokens from each sentence, including negative samples
         components = self.vocabulary_encoder.get_components(captions)
+
         # Get embeddings from those ids with the VocabularyEncoder
-        embeddings["sent_emb"] = [
-            self.vocabulary_encoder(word_ids).to(self.device)
-            for word_ids in components["words"]
-        ]
+        embeddings["sent_emb"] = self.vocabulary_encoder(components["words"]).to(self.device)
 
-        embeddings["obj_emb"] = [
-            self.vocabulary_encoder(obj_ids).to(self.device)
-            if obj_ids else None
-            for obj_ids in components["obj"]
-        ]
-        embeddings["attr_emb"] = [
-            self.vocabulary_encoder(attr_ids).to(self.device)
-            if attr_ids else None
-            for attr_ids in components["attr"]
-        ]
-        embeddings["rel_emb"] = [
-            torch.stack([self.vocabulary_encoder(rel) for rel in rel_list]).to(self.device)
-            if rel_list else None
-            for rel_list in components["rel"]
-        ]
+        embeddings["obj_emb"] = self.vocabulary_encoder(components["obj"]).to(self.device)
+        embeddings["attr_emb"] = self.vocabulary_encoder(components["attr"]).to(self.device)
+        embeddings["rel_emb"] = self.vocabulary_encoder(components["rel"]).to(self.device)
 
-        embeddings["neg_obj_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_obj) for n_obj in n_obj_list]).to(self.device)
-            if n_obj_list else None
-            for n_obj_list in components["n_obj"]
-        ]
-        embeddings["neg_attr_n_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_attr) for n_attr in n_attr_list]).to(self.device)
-            if n_attr_list else None
-            for n_attr_list in components["n_attr_n"]
-        ]
-        embeddings["neg_attr_a_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_attr) for n_attr in n_attr_list]).to(self.device)
-            if n_attr_list else None
-            for n_attr_list in components["n_attr_a"]
-        ]
-        embeddings["neg_rel_emb"] = [
-            torch.stack([self.vocabulary_encoder(n_rel) for n_rel in n_rel_list]).to(self.device)
-            if n_rel_list else None
-            for n_rel_list in components["n_rel"]
-        ]
+        embeddings["neg_obj_emb"] = self.vocabulary_encoder(components["neg_obj"]).to(self.device)
+        embeddings["neg_attr_n_emb"] = self.vocabulary_encoder(components["neg_attr_n"]).to(self.device)
+        embeddings["neg_attr_a_emb"] = self.vocabulary_encoder(components["neg_attr_a"]).to(self.device)
+        embeddings["neg_rel_emb"] = self.vocabulary_encoder(components["neg_rel"]).to(self.device)
 
         # Use Object Encoder to compute their embeddings in the UniVSE space
-        embeddings["sent_emb"] = [self.object_encoder(elem) for elem in embeddings["sent_emb"]]
+        embeddings["sent_emb"] = self.object_encoder(embeddings["sent_emb"])
 
-        embeddings["obj_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                 embeddings["obj_emb"]]
-        embeddings["attr_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                  embeddings["attr_emb"]]
-        embeddings["rel_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                 embeddings["rel_emb"]]
+        embeddings["obj_emb"] = self.object_encoder(embeddings["obj_emb"])
+        embeddings["attr_emb"] = self.object_encoder(embeddings["attr_emb"])
+        embeddings["rel_emb"] = self.object_encoder(embeddings["rel_emb"])
 
-        embeddings["neg_obj_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                     embeddings["neg_obj_emb"]]
-        embeddings["neg_attr_n_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                        embeddings["neg_attr_n_emb"]]
-        embeddings["neg_attr_a_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                        embeddings["neg_attr_a_emb"]]
-        embeddings["neg_rel_emb"] = [self.object_encoder(elem) if elem is not None else None for elem in
-                                     embeddings["neg_rel_emb"]]
+        embeddings["neg_obj_emb"] = self.object_encoder(embeddings["neg_obj_emb"])
+        embeddings["neg_attr_n_emb"] = self.object_encoder(embeddings["neg_attr_n_emb"])
+        embeddings["neg_attr_a_emb"] = self.object_encoder(embeddings["neg_attr_a_emb"])
+        embeddings["neg_rel_emb"] = self.object_encoder(embeddings["neg_rel_emb"])
 
         # Relations and captions must be processed more with the Neural Combiner (RNN)
-        lengths = torch.tensor([elem.size(0) for elem in embeddings["sent_emb"]])
-        padded_emb = torch.zeros(len(embeddings["sent_emb"]), max(lengths), self.hidden_size).float().to(self.device)
-        for i, cap in enumerate(embeddings["sent_emb"]):
-            end = lengths[i]
-            padded_emb[i, :end, :] = cap
-        embeddings["sent_emb"] = self.neural_combiner(padded_emb, lengths)
+        embeddings["rel_emb"] = self.neural_combiner(
+            embeddings["rel_emb"], torch.tensor([3] * embeddings["rel_emb"].size(0))
+        )
+        embeddings["neg_rel_emb"] = self.neural_combiner(
+            embeddings["neg_rel_emb"], torch.tensor([3] * embeddings["neg_rel_emb"].size(0))
+        )
 
-        embeddings["rel_emb"] = [
-            self.neural_combiner(elem, torch.tensor([3] * elem.size(0)))
-            if elem is not None else None
-            for elem in embeddings["rel_emb"]
-        ]
-        embeddings["neg_rel_emb"] = [
-            torch.stack([
-                self.neural_combiner(elem, torch.tensor([3] * elem.size(0)))
-                if elem is not None else None
-                for elem in relations
-            ])
-            if relations is not None else None
-            for relations in embeddings["neg_rel_emb"]
-        ]
+        # Add padding in order to process captions
+        start, end = 0, 0
+        padded_emb = torch.zeros(len(captions), components["max_words"], self.hidden_size).float().to(self.device)
+        for i, num in enumerate(components["num_words"]):
+            end += num
+            padded_emb[i, :num, :] = embeddings["sent_emb"][start:end]
+            start = end
+        embeddings["sent_emb"] = self.neural_combiner(padded_emb, torch.tensor(components["num_words"]))
 
         # Compute Component Embedding aggregating object, attribute and relation embeddings
-        comp_emb = []
-        aggregation = torch.zeros((1, 1024), dtype=torch.float).to(self.device)
-        for obj, attr, rel in zip(embeddings["obj_emb"], embeddings["attr_emb"], embeddings["rel_emb"]):
-            if obj is not None:
-                aggregation = aggregation + obj.sum(dim=0).view(1, -1)
-            if attr is not None:
-                aggregation = aggregation + attr.sum(dim=0).view(1, -1)
-            if rel is not None:
-                aggregation = aggregation + rel.sum(dim=0).view(1, -1)
-            norm_aggregation = f.normalize(aggregation, dim=1, p=2)
-            comp_emb.append(norm_aggregation)
-        embeddings["comp_emb"] = torch.cat(comp_emb, dim=0)
-        
-        # Caption Embedding
-        # Compute caption embedding using alpha (alpha is not trainable)
+        start_o, start_a, start_r = 0, 0, 0
+        end_o, end_a, end_r = 0, 0, 0
+        aggregation = torch.zeros((len(components["num_words"]), self.hidden_size), dtype=torch.float).to(self.device)
+        for i, (n_o, n_a, n_r) in enumerate(zip(components["num_obj"], components["num_attr"], components["num_rel"])):
+            end_o += n_o
+            end_a += n_a
+            end_r += n_r
+            aggregation[i] += embeddings["obj_emb"][start_o:end_o].view(-1, self.hidden_size).sum(dim=0).view(-1)
+            aggregation[i] += embeddings["attr_emb"][start_a:end_a].view(-1, self.hidden_size).sum(dim=0).view(-1)
+            aggregation[i] += embeddings["rel_emb"][start_r:end_r].view(-1, self.hidden_size).sum(dim=0).view(-1)
+            start_o = end_o
+            start_a = end_a
+            start_r = end_r
+        norm_aggregation = f.normalize(aggregation, dim=1, p=2)
+        embeddings["comp_emb"] = norm_aggregation
+
+        # Compute Caption Embedding using alpha (alpha is not trainable)
         embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
 
+        # Unflatten objects, attributes and relations (both positives and negatives), in order to ease loss computations
+        embeddings["obj_emb"] = unflatten_pos_embeddings(embeddings["obj_emb"], components["num_obj"])
+        embeddings["attr_emb"] = unflatten_pos_embeddings(embeddings["attr_emb"], components["num_attr"])
+        embeddings["rel_emb"] = unflatten_pos_embeddings(embeddings["rel_emb"], components["num_obj"])
+
+        embeddings["neg_obj_emb"] = unflatten_neg_embeddings(
+            embeddings["neg_obj_emb"], components["num_obj"], components["num_neg_obj"]
+        )
+        embeddings["neg_attr_n_emb"] = unflatten_neg_embeddings(
+            embeddings["neg_attr_n_emb"], components["num_neg_attr_n"], components["num_neg_attr_n"]
+        )
+        embeddings["neg_attr_a_emb"] = unflatten_neg_embeddings(
+            embeddings["neg_attr_a_emb"], components["num_neg_attr_a"], components["num_neg_attr_a"]
+        )
+        embeddings["neg_rel_emb"] = unflatten_neg_embeddings(
+            embeddings["neg_rel_emb"], components["num_rel"], components["num_neg_rel"]
+        )
+
         return embeddings
-
-
-# This main function is used to make some experiments in a fast way
-if __name__ == '__main__':
-
-    """
-    glove_dir = "/home/ander/Documentos/Datuak/glove/glove.840B.300d.txt"
-    images_2014 = "/home/ander/Documentos/Datuak/mscoco/train2014"
-    ann_file_2014 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/home/ander/Documentos/Datuak/mscoco/val2017"
-    ann_file_2017 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2017.json"
-    """
-    """
-    glove_dir = "/gscratch/users/asalaberria009/datasets/glove/glove.840B.300d.txt"
-    images_2014 = "/gscratch/users/asalaberria009/datasets/mscoco/images/train2014"
-    ann_file_2014 = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/gscratch/users/asalaberria009/datasets/mscoco/images/val2017"
-    ann_file_2017 = "/gscratch/users/asalaberria009/datasets/mscoco/annotations/captions_val2017.json"
-
-    transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-
-    cap_2014 = torchvision.datasets.CocoCaptions(images_2014, ann_file_2014, transform=transform, target_transform=None,
-                                                 transforms=None)
-    cap_2017 = torchvision.datasets.CocoCaptions(images_2017, ann_file_2017, transform=transform, target_transform=None,
-                                                 transforms=None)
-    train_vsts, dev_vsts, test_vsts = ld.download_and_load_vsts_dataset(
-        # images=False, v2=True, root_path="/home/ander/Documentos/Datuak"
-        images=False, v2=True, root_path="/gscratch/users/asalaberria009/datasets/vSTS_v2"
-    )
-
-    sentences = []
-
-    for _, sent in tqdm(cap_2014):
-        sentences += sent
-
-    for _, sent in tqdm(cap_2017):
-        sentences += sent
-
-    sentences += list(train_vsts["sent_1"])
-    sentences += list(train_vsts["sent_2"])
-    sentences += list(dev_vsts["sent_1"])
-    sentences += list(dev_vsts["sent_2"])
-    sentences += list(test_vsts["sent_1"])
-    sentences += list(test_vsts["sent_2"])
-
-    print(f"Amount of sentences: {len(sentences)}")
-
-    vocab = VocabularyEncoder(sentences, glove_dir)
-    vocab.save_corpus("initial_corpus.pickle")
-
-    """
-    glove_dir = "/home/ander/Documentos/Datuak/glove/glove.840B.300d.txt"
-    images_2014 = "/home/ander/Documentos/Datuak/mscoco/train2014"
-    ann_file_2014 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_train2014.json"
-    images_2017 = "/home/ander/Documentos/Datuak/mscoco/val2017"
-    ann_file_2017 = "/home/ander/Documentos/Datuak/mscoco/annotations/captions_val2017.json"
-
-    transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
-
-    cap_2014 = torchvision.datasets.CocoCaptions(images_2014, ann_file_2014, transform=transform, target_transform=None,
-                                                 transforms=None)
-    cap_2017 = torchvision.datasets.CocoCaptions(images_2017, ann_file_2017, transform=transform, target_transform=None,
-                                                 transforms=None)
-
-    dataloader = torch.utils.data.DataLoader(cap_2017, batch_size=8, shuffle=False)
-    img, sent = next(iter(dataloader))
-
-    sentences = [sent[0][enum] for enum, idx in enumerate(list(np.random.randint(0, 4, size=8)))]
-
-    model = UniVSE.from_filename('/home/ander/Documentos/Datuak/baseline_corpus_univse.pickle')
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
-
-    model.train_start()
-    emb = model(img, sentences)
-    b_loss, o = model.criterion(emb)
-    b_loss.backward()
-    optimizer.step()
-
-    print(model.vocabulary_encoder.modif(torch.tensor(model.vocabulary_encoder.word_ids["rainbow"]))[:6])
-    total_loss, b = model.criterion(emb)
