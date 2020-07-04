@@ -88,16 +88,16 @@ class VocabularyEncoder(nn.Module):
             stack_basic = torch.stack([
                 self.basic[idx]
                 for idx in word_ids
-            ]).to(self.device)
-            stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
+            ])
+            stack_modif = self.modif(torch.tensor(word_ids))
             stack = torch.cat([stack_basic, stack_modif], dim=1)
         elif isinstance(word_ids[0], tuple):
             stack_basic = torch.stack([
                 self.basic[idx]
                 for idx, _ in word_ids
-            ]).to(self.device)
+            ])
             modif_ids = [idx for _, idx in word_ids]
-            stack_modif = self.modif(torch.tensor(modif_ids).to(self.device))
+            stack_modif = self.modif(torch.tensor(modif_ids))
             stack = torch.cat([stack_basic, stack_modif], dim=1)
         elif isinstance(word_ids[0], list):
             # print(torch.tensor(word_ids).size())
@@ -107,9 +107,9 @@ class VocabularyEncoder(nn.Module):
                     for idx in ids
                 ])
                 for ids in word_ids
-            ]).to(self.device)
-            stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
-            stack = torch.cat([stack_basic, stack_modif], dim=2)
+            ])
+            stack_modif = self.modif(torch.tensor(word_ids))
+            stack = torch.cat([stack_basic, stack_modif], dim=2).to(self.device)
         else:
             print("WARNING: Unknown input type in vocabulary encoder.")
 
@@ -301,7 +301,7 @@ class VocabularyEncoder(nn.Module):
         self.corpus = corpus[0]
 
         self.basic = corpus[1]
-        self.modif = corpus[2]
+        self.modif = corpus[2].cpu()
 
         self.neg_obj = corpus[3]
         self.neg_attr = corpus[4]
