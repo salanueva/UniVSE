@@ -301,7 +301,7 @@ class VocabularyEncoder(nn.Module):
         self.corpus = corpus[0]
 
         self.basic = corpus[1]
-        self.modif = corpus[2].cpu()
+        self.modif = corpus[2].to(torch.device("cpu"))
 
         self.neg_obj = corpus[3]
         self.neg_attr = corpus[4]
