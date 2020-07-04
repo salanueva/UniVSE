@@ -163,9 +163,7 @@ def main():
             model = univse.UniVSE.from_filename(args.vocab_file)
             model.vocabulary_encoder.add_graphs(args.graph_file)
         # Randomize modifier
-        model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100).to(
-            torch.device("cpu")
-        )
+        model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100)
         model.vocabulary_encoder.modif.weight.data.uniform_(-0.1, 0.1)
         model.vocabulary_encoder.modif.weight.data[model.vocabulary_encoder.train_corpus_length:] = torch.zeros(
             (len(model.vocabulary_encoder.corpus) - model.vocabulary_encoder.train_corpus_length, 100)
@@ -230,6 +228,7 @@ def main():
             if phase == 'train':
                 generator = train_gen
                 model.train_start()  # Set model to training mode
+                model.vocabulary_encoder.modif = model.vocabulary_encoder.modif.to(torch.device("cpu"))
             else:
                 generator = dev_gen
                 model.val_start()  # Set model to evaluate mode
