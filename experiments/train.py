@@ -228,7 +228,6 @@ def main():
             if phase == 'train':
                 generator = train_gen
                 model.train_start()  # Set model to training mode
-                model.vocabulary_encoder.modif = model.vocabulary_encoder.modif.to(torch.device("cpu"))
             else:
                 generator = dev_gen
                 model.val_start()  # Set model to evaluate mode
