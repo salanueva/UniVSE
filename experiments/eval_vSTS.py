@@ -128,12 +128,12 @@ def main():
     print("C) Load pre-trained model")
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    if args.model == "univse":
+    if args.model_path == "univse":
         model = univse.UniVSE.from_filename(args.vocab_path)
         model.load_model(args.model_path)
         if args.graph_path is not None:
             model.vocabulary_encoder.add_graphs(args.graph_path)
-    elif args.model == "simp_univse":
+    elif args.model_path == "simp_univse":
         model = simp_univse.UniVSE.from_filename(args.vocab_path)
         model.load_model(args.model_path)
     else:
