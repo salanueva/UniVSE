@@ -69,7 +69,7 @@ def inference(dataset, model, device, model_type="univse"):
         # Predict hidden states features for each layers
         with torch.no_grad():
 
-            if model_type == "univse":
+            if model_type == "univse" or model_type == "simp_univse":
                 output_1 = model(img_1, [sent_1])
                 output_2 = model(img_2, [sent_2])
             else:
