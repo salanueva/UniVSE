@@ -69,15 +69,20 @@ def inference(dataset, model, device, model_type="univse"):
         # Predict hidden states features for each layers
         with torch.no_grad():
 
-            if model_type == "univse" or model_type == "simp_univse":
+            if model_type == "univse":
                 output_1 = model(img_1, [sent_1])
                 output_2 = model(img_2, [sent_2])
+                emb_1 = model.alpha * output_1["sent_emb"] + (1 - model.alpha) * output_1["comp_emb"]
+                emb_2 = model.alpha * output_2["sent_emb"] + (1 - model.alpha) * output_2["comp_emb"]
+            elif model_type == "simp_univse":
+                output_1 = model(img_1, [sent_1])
+                output_2 = model(img_2, [sent_2])
+                emb_1 = output_1["sent_emb"]
+                emb_2 = output_2["sent_emb"]
             else:
                 print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
                 return
 
-        emb_1 = model.alpha * output_1["sent_emb"] + (1 - model.alpha) * output_1["comp_emb"]
-        emb_2 = model.alpha * output_2["sent_emb"] + (1 - model.alpha) * output_2["comp_emb"]
         pred_similarities[index] = cos(emb_1, emb_2).data.cpu().numpy()[0]
         index += 1
 
