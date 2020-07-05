@@ -251,8 +251,8 @@ def main():
                 model.times["loss"] += time.time() - time_start
 
                 # ####### DEBUG ######## #
-                if idx % 100 == 1:
-                    with open("times.txt", "a+") as t_file:
+                if epoch == 1 and idx == 100:
+                    with open("times.txt", "w") as t_file:
                         t_file.write(f" # EPOCH {epoch}\t# BATCH {idx} #\n")
                         t_file.write(f"Image:  {model.times['image'] * 1000 / model.times['n']} ms\n")
                         t_file.write(f"Input:  {model.times['input'] * 1000 / model.times['n']} ms\n")

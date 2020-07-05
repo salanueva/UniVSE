@@ -10,6 +10,7 @@ import torch
 
 sys.path.append(os.getcwd())
 from helper import load_data as ld
+from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 
 
@@ -19,10 +20,10 @@ def parse_args():
     parser.add_argument(
         "--model",
         type=str,
-        choices=["vse++", "univse"],
+        choices=["vse++", "univse", "simp_univse"],
         default="univse",
         help='Name of the model you want to evaluate on vSTS. ' +
-             'Choices are: "vse++" (not implemented yet) and "univse".'
+             'Choices are: "vse++", "univse" or "simp_univse".'
     )
     parser.add_argument(
         "--dataset",
@@ -36,6 +37,12 @@ def parse_args():
         "--data-path",
         type=str,
         help='Path of dataset that will be used.'
+    )
+    parser.add_argument(
+        "--graph-path",
+        type=str,
+        default=None,
+        help='Path of precomputed scene graphs.'
     )
     parser.add_argument(
         "--model-path",
@@ -123,6 +130,11 @@ def main():
 
     if args.model == "univse":
         model = univse.UniVSE.from_filename(args.vocab_path)
+        model.load_model(args.model_path)
+        if args.graph_path is not None:
+            model.vocabulary_encoder.add_graphs(args.graph_path)
+    elif args.model == "simp_univse":
+        model = simp_univse.UniVSE.from_filename(args.vocab_path)
         model.load_model(args.model_path)
     else:
         print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
