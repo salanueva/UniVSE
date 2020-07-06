@@ -194,7 +194,7 @@ def main():
                     best_model_wts = copy.deepcopy(model.state_dict())
 
     model.load_state_dict(best_model_wts)
-    model.save_model(os.path.join(args.output_path, f"ft_model_{args.model}.pth"))
+    torch.save(model.state_dict(), os.path.join(args.output_path, f"ft_model_{args.model}.pth"))
 
     model.univse_layer.vocabulary_encoder.modif = best_modif_emb
     model.univse_layer.vocabulary_encoder.save_corpus(os.path.join(args.output_path, f"ft_corpus_{args.model}.pickle"))
