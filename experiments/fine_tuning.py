@@ -105,10 +105,10 @@ def main():
     if args.model == "vse++":
         raise NotImplementedError
     elif args.model == "simp_univse":
-        model = models.UniVSE.from_filename(args.vocab_path, simple=True)
+        model = models.UniVSE(args.vocab_path, simple=True)
         model.univse_layer.load_model(args.model_path)
     elif args.model == "univse":
-        model = models.UniVSE.from_filename(args.vocab_path, graph_file=args.graph_path)
+        model = models.UniVSE(args.vocab_path, graph_file=args.graph_path)
         model.univse_layer.load_model(args.model_path)
     else:
         print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
