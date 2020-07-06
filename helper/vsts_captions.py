@@ -43,8 +43,8 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
         sent_2 = self.data["sent_2"][index]
         sim = self.data["sim"][index]
 
-        img_1 = Image.open(os.path.join(self.root, img_1)).convert('RGB')
-        img_2 = Image.open(os.path.join(self.root, img_2)).convert('RGB')
+        img_1 = Image.open(os.path.join(self.root, "visual_sts.v2.0", img_1)).convert('RGB')
+        img_2 = Image.open(os.path.join(self.root, "visual_sts.v2.0", img_2)).convert('RGB')
 
         if self.transforms is not None:
             img_1, sent_1 = self.transforms(img_1, sent_1)
