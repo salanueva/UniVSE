@@ -44,10 +44,11 @@ class UniVSE(nn.Module):
                 self.univse_layer.vocabulary_encoder.add_graphs(graph_file)
 
         self.hidden_size = self.univse_layer.hidden_size
-        self.dropout = nn.Dropout(dropout_prob)
         self.regressor = nn.Sequential(
+            nn.Dropout(dropout_prob),
             nn.Linear(self.hidden_size * 4, self.hidden_size),
             nn.ReLU(),
+            nn.Dropout(dropout_prob),
             nn.Linear(self.hidden_size, 1)
         )
         self.regressor.apply(init_weights)
