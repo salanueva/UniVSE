@@ -62,7 +62,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--model-path",
+        "--data-path",
         type=str,
         help='Path where vSTS data is found.'
     )
