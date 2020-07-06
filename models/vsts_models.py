@@ -89,7 +89,6 @@ class UniVSE(nn.Module):
             emb_sent_2 = embeddings_2["cap_emb"]
 
         output = torch.cat((emb_img_1, emb_sent_1, emb_img_2, emb_sent_2), dim=1)
-        output = self.dropout(output)
         logits = self.regressor(output)
 
         return logits.view(-1, 1)
