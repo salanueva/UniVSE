@@ -20,7 +20,7 @@ from helper.coco_captions import CocoCaptions
 from helper import image_text_retrieval as itr, plotter
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
-from models.vsepp import model as vsepp
+# from models.vsepp import model as vsepp
 
 
 def parse_args():
@@ -122,10 +122,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def decimal_str(x: float, decimals: int = 10) -> str:
-    return format(x, f".{decimals}f").lstrip().rstrip('0')
-
-
 def main():
 
     args = parse_args()
@@ -136,22 +132,13 @@ def main():
 
     if args.restval:
         train_data = CocoCaptions(
-            (args.train_img_path, args.dev_img_path),
-            (args.train_ann_file, args.dev_ann_file),
-            transform=transform, target_transform=None, transforms=None, split="restval"
+            (args.train_img_path, args.dev_img_path), (args.train_ann_file, args.dev_ann_file),
+            transform=transform, split="restval"
         )
     else:
-        train_data = CocoCaptions(
-            args.train_img_path,
-            args.train_ann_file,
-            transform=transform, target_transform=None, transforms=None, split="train"
-        )
+        train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform, split="train")
 
-    dev_data = CocoCaptions(
-        args.dev_img_path,
-        args.dev_ann_file,
-        transform=transform, target_transform=None, transforms=None, split="dev"
-    )
+    dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="dev")
 
     print("B) Load model")
     if args.model == "vse++":
@@ -173,7 +160,7 @@ def main():
         return
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
+    model = model.to(device)
 
     # Observe that all parameters are being optimized
     optimizer = optim.Adam(model.params, lr=args.lr)
@@ -197,21 +184,10 @@ def main():
     train_losses = []
     dev_losses = []
 
-    ir_r1_1k = []
-    ir_r5_1k = []
-    ir_r10_1k = []
-
-    tr_r1_1k = []
-    tr_r5_1k = []
-    tr_r10_1k = []
-
-    ir_r1_5k = []
-    ir_r5_5k = []
-    ir_r10_5k = []
-
-    tr_r1_5k = []
-    tr_r5_5k = []
-    tr_r10_5k = []
+    ir_r1_1k, ir_r5_1k, ir_r10_1k = [], [], []
+    tr_r1_1k, tr_r5_1k, tr_r10_1k = [], [], []
+    ir_r1_5k, ir_r5_5k, ir_r10_5k = [], [], []
+    tr_r1_5k, tr_r5_5k, tr_r10_5k = [], [], []
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
