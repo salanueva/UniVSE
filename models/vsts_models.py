@@ -43,6 +43,7 @@ class UniVSE(nn.Module):
             if graph_file is not None:
                 self.univse_layer.vocabulary_encoder.add_graphs(graph_file)
 
+        self.hidden_size = self.univse_layer.hidden_size
         self.dropout = nn.Dropout(dropout_prob)
         self.regressor = nn.Sequential(
             nn.Linear(self.hidden_size * 4, self.hidden_size),
@@ -50,9 +51,9 @@ class UniVSE(nn.Module):
             nn.Linear(self.hidden_size, 1)
         )
         self.regressor.apply(init_weights)
-        self.simple = simple
 
         self.criterion = torch.nn.MSELoss()
+        self.simple = simple
 
     def train_start(self):
         """
