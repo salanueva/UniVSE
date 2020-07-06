@@ -62,9 +62,9 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--data-path",
+        "--model-path",
         type=str,
-        help='Path where captions and images of the task are found.'
+        help='Path where model is found.'
     )
     parser.add_argument(
         "--graph-path",
@@ -101,8 +101,10 @@ def main():
         raise NotImplementedError
     elif args.model == "simp_univse":
         model = models.UniVSE.from_filename(args.vocab_path, simple=True)
+        model.univse_layer.load_model(args.model_path)
     elif args.model == "univse":
         model = models.UniVSE.from_filename(args.vocab_path, graph_file=args.graph_path)
+        model.univse_layer.load_model(args.model_path)
     else:
         print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
         return
