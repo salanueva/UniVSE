@@ -171,8 +171,6 @@ def main():
                 if phase == "train":
                     optimizer.zero_grad()
                     loss.backward()
-                    if model.grad_clip > 0:
-                        clip_grad_norm_(model.params, model.grad_clip)
                     optimizer.step()
 
                 batch_loss = float(loss.data.cpu().numpy())
