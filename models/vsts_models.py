@@ -66,7 +66,7 @@ class UniVSE(nn.Module):
         self.univse_layer.train_start()
         self.regressor.train()
 
-    def val_start(self):
+    def eval_start(self):
         """
         Switch to validation mode
         """
