@@ -55,6 +55,10 @@ class UniVSE(nn.Module):
         self.criterion = torch.nn.MSELoss()
         self.simple = simple
 
+        params = list(self.univse_layer.params)
+        params += list(self.regressor.parameters())
+        self.params = params
+
     def train_start(self):
         """
         Switch to train mode

@@ -164,6 +164,8 @@ def main():
                 img_1, sent_1, img_2, sent_2, sim = current_batch
 
                 logits = model(img_1, list(sent_1), img_2, list(sent_2))
+                
+                sim = torch.tensor(sim).view(-1, 1)
                 loss = model.criterion(logits, sim)
 
                 if phase == "train":
