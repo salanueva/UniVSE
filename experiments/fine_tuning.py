@@ -139,7 +139,7 @@ def main():
     dev_losses = []
 
     best_model_wts = copy.deepcopy(model.state_dict())
-    best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
+    best_modif_emb = copy.deepcopy(model.univse_layer.vocabulary_encoder.modif)
     best_loss = 1e10
 
     t_epoch = tqdm(range(1, args.epochs + 1), desc="Epoch")
@@ -164,7 +164,7 @@ def main():
                 img_1, sent_1, img_2, sent_2, sim = current_batch
 
                 logits = model(img_1, list(sent_1), img_2, list(sent_2))
-                
+
                 sim = torch.tensor(sim).view(-1, 1)
                 loss = model.criterion(logits, sim)
 
@@ -192,14 +192,14 @@ def main():
                 if running_loss < best_loss:
                     del best_modif_emb, best_model_wts
                     best_loss = running_loss
-                    best_modif_emb = copy.deepcopy(model.vocabulary_encoder.modif)
+                    best_modif_emb = copy.deepcopy(model.univse_layer.vocabulary_encoder.modif)
                     best_model_wts = copy.deepcopy(model.state_dict())
 
     model.load_state_dict(best_model_wts)
     model.save_model(os.path.join(args.output_path, f"ft_model_{args.model}.pth"))
 
-    model.vocabulary_encoder.modif = best_modif_emb
-    model.vocabulary_encoder.save_corpus(os.path.join(args.output_path, f"ft_corpus_{args.model}.pickle"))
+    model.univse_layer.vocabulary_encoder.modif = best_modif_emb
+    model.univse_layer.vocabulary_encoder.save_corpus(os.path.join(args.output_path, f"ft_corpus_{args.model}.pickle"))
 
     # Save loss plot
     if args.plot:
