@@ -16,7 +16,7 @@ def init_weights(m):
     :param m: pytorch layer
     """
     if type(m) == nn.Linear:
-        torch.nn.init.xavier_uniform(m.weight)
+        torch.nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
 

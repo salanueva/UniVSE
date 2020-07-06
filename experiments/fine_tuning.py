@@ -165,7 +165,7 @@ def main():
 
                 logits = model(img_1, list(sent_1), img_2, list(sent_2))
 
-                sim = torch.tensor(sim).view(-1, 1)
+                sim = sim.view(-1, 1).to(device)
                 loss = model.criterion(logits, sim)
 
                 if phase == "train":
