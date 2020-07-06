@@ -64,6 +64,11 @@ def parse_args():
     parser.add_argument(
         "--model-path",
         type=str,
+        help='Path where vSTS data is found.'
+    )
+    parser.add_argument(
+        "--model-path",
+        type=str,
         help='Path where model is found.'
     )
     parser.add_argument(
@@ -93,8 +98,8 @@ def main():
     print("A) Load data")
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
 
-    train_data = vsts.VstsCaptions(root=args.root, transform=transform, split="train")
-    dev_data = vsts.VstsCaptions(root=args.root, transform=transform, split="dev")
+    train_data = vsts.VstsCaptions(root=args.data_path, transform=transform, split="train")
+    dev_data = vsts.VstsCaptions(root=args.data_path, transform=transform, split="dev")
 
     print("B) Load model")
     if args.model == "vse++":
