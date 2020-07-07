@@ -94,7 +94,7 @@ def inference(data_gen, model, device):
 
         emb_1, emb_2, _ = batch
         logits = model(emb_1.to(device), emb_2.to(device))
-        all_logits.extend(logits.unsqueeze(1).data.cpu().tolist())
+        all_logits.extend(logits.squeeze(1).data.cpu().tolist())
 
     return all_logits
 
