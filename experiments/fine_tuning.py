@@ -141,7 +141,7 @@ def main():
             for current_batch in t_batch:
 
                 emb_1, emb_2, sim = current_batch
-                logits = model(emb_1, emb_2)
+                logits = model(emb_1.to(device), emb_2.to(device))
 
                 sim = sim.view(-1, 1).to(device)
                 loss = model.criterion(logits, sim)
