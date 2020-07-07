@@ -75,8 +75,9 @@ class VstsCaptionsPrecomp(data.Dataset):
         :param file_1: numpy file with precomputed embeddings of sent_1 of each vSTS dataset's instance.
         :param file_2: numpy file with precomputed embeddings of sent_2 of each vSTS dataset's instance.
         :param file_sim: numpy file with similarities of each vSTS dataset's instance.
+        :param split: split of this dataloader.
         """
-        super(VstsCaptionsPrecomp, self).__init__(file_1, file_2, file_sim, split)
+        super(VstsCaptionsPrecomp, self).__init__()
 
         sent_1 = np.load(file_1)
         sent_2 = np.load(file_2)
