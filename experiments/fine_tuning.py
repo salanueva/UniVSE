@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument(
         '--epochs',
         type=int,
-        default=100,
+        default=300,
         help='Number of epochs for the pre-training process.'
     )
     parser.add_argument(
@@ -137,8 +137,7 @@ def main():
             idx = 0
 
             # Iterate over data.
-            t_batch = tqdm(generator, desc="Batch", leave=False)
-            for current_batch in t_batch:
+            for current_batch in generator:
 
                 emb_1, emb_2, sim = current_batch
                 logits = model(emb_1.to(device), emb_2.to(device))
@@ -152,7 +151,6 @@ def main():
                     optimizer.step()
 
                 batch_loss = float(loss.data.cpu().numpy())
-                t_batch.set_description(f"Batch Loss: {batch_loss:.6f}")
                 running_loss += batch_loss
                 idx += 1
 
@@ -171,12 +169,12 @@ def main():
                     best_model_wts = copy.deepcopy(model.state_dict())
 
     model.load_state_dict(best_model_wts)
-    torch.save(model.state_dict(), os.path.join(args.output_path, f"ft_model_{args.model}.pth"))
+    torch.save(model.state_dict(), os.path.join(args.output_path, f"ft_model_lr{args.lr:.1E}.pth"))
 
     # Save loss plot
     if args.plot:
         fig = plotter.plot_loss_curve(range(1, args.epochs + 1), train_losses, dev_losses, yexp=True)
-        plt.savefig(os.path.join(args.output_path, f"training_losses_{args.model}.png"))
+        plt.savefig(os.path.join(args.output_path, f"training_losses_{args.lr:.1E}.png"))
         plt.close(fig)
 
     with open(os.path.join(args.output_path, "losses.pickle"), "wb") as f:
