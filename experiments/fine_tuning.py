@@ -5,6 +5,7 @@ import os
 import pickle
 import sys
 from tqdm import tqdm
+from scipy.stats import pearsonr
 
 import torch
 from torch import optim
@@ -22,6 +23,12 @@ def parse_args():
         default=False,
         action='store_true',
         help='Use it if you want to create plots of R@k values and loss values during training.'
+    )
+    parser.add_argument(
+        '--eval',
+        default=False,
+        action='store_true',
+        help='Use it if you want to evaluate the fine-tuned model on vSTS.'
     )
 
     parser.add_argument(
@@ -79,6 +86,19 @@ def parse_args():
     return parser.parse_args()
 
 
+def inference(data_gen, model, device):
+
+    all_logits = []
+
+    for batch in data_gen:
+
+        emb_1, emb_2, _ = batch
+        logits = model(emb_1.to(device), emb_2.to(device))
+        all_logits.extend(list(logits.data.cpu().numpy[0]))
+
+    return 0
+
+
 def main():
 
     args = parse_args()
@@ -108,12 +128,12 @@ def main():
     }
     train_gen = data.DataLoader(train_data, **train_params)
 
-    dev_params = {
+    eval_params = {
         'batch_size': args.batch_size,
         'shuffle': False,
         'num_workers': 6
     }
-    dev_gen = data.DataLoader(dev_data, **dev_params)
+    dev_gen = data.DataLoader(dev_data, **eval_params)
 
     train_losses = []
     dev_losses = []
@@ -180,6 +200,31 @@ def main():
     with open(os.path.join(args.output_path, "losses.pickle"), "wb") as f:
         losses = {"train": train_losses, "dev": dev_losses}
         pickle.dump(losses, f)
+
+    if args.eval:
+
+        test_data = vsts.VstsCaptionsPrecomp(
+            file_1=args.sent1_emb_file, file_2=args.sent2_emb_file, file_sim=args.sim_file, split="test"
+        )
+        train_gen = data.DataLoader(train_data, **eval_params)
+        test_gen = data.DataLoader(test_data, **eval_params)
+
+        print("D) Inference")
+        model.eval()
+        pred_sim_train = inference(train_gen, model, device)
+        pred_sim_dev = inference(dev_gen, model, device)
+        pred_sim_test = inference(test_gen, model, device)
+
+        print("E) Compute Pearson Correlations (between predicted similarities and ground truth)")
+        pearson_values = [
+            pearsonr(pred_sim_train, train_data.sim)[0],
+            pearsonr(pred_sim_dev, dev_data.sim)[0],
+            pearsonr(pred_sim_test, test_data.sim)[0]
+        ]
+
+        print(
+            f"{args.model.upper()} (Cosine): {pearson_values[0]:.4f}\t{pearson_values[1]:.4f}\t{pearson_values[2]:.4f}"
+        )
 
 
 if __name__ == '__main__':
