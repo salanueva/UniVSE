@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument(
         "--lr",
         type=float,
-        default=0.00002,
+        default=0.0001,
         help='Initial learning rate of the fine-tuning process.'
     )
     parser.add_argument(
@@ -50,9 +50,15 @@ def parse_args():
         help='Number of image and sentence pairs per batch.'
     )
     parser.add_argument(
+        '--hidden-size',
+        type=int,
+        default=100,
+        help="Regressor's hidden size (h_s)."
+    )
+    parser.add_argument(
         '--momentum',
         type=float,
-        default=0.95,
+        default=0.0,
         help='Momentum of SGD optimizer.'
     )
     parser.add_argument(
@@ -60,6 +66,18 @@ def parse_args():
         type=float,
         default=0.0,
         help='Weight decay of SGD optimizer.'
+    )
+    parser.add_argument(
+        '--dropout',
+        type=float,
+        default=0.0,
+        help='Dropout probability.'
+    )
+    parser.add_argument(
+        '--batch-norm',
+        default=False,
+        action='store_true',
+        help='Use batch normalization layers in regressor.'
     )
 
     parser.add_argument(
@@ -114,7 +132,7 @@ def main():
     print("B) Load model")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    model = models.SiameseRegressor()
+    model = models.SiameseRegressor(hidden_dim=args.hidden_size, dropout=args.dropout, batch_norm=args.batch_norm)
     model = model.to(device)
 
     # Observe that all parameters are being optimized
