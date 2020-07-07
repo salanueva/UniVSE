@@ -214,8 +214,6 @@ def main():
         pred_sim_train = inference(train_gen, model, device)
         pred_sim_dev = inference(dev_gen, model, device)
         pred_sim_test = inference(test_gen, model, device)
-        print(pred_sim_train)
-        print(train_data.sim)
 
         print("E) Compute Pearson Correlations (between predicted similarities and ground truth)")
         pearson_values = [
@@ -224,9 +222,7 @@ def main():
             pearsonr(pred_sim_test, test_data.sim)[0]
         ]
 
-        print(
-            f"{args.model.upper()} (Cosine): {pearson_values[0]:.4f}\t{pearson_values[1]:.4f}\t{pearson_values[2]:.4f}"
-        )
+        print(f"Pearson values: {pearson_values[0]:.4f}\t{pearson_values[1]:.4f}\t{pearson_values[2]:.4f}")
 
 
 if __name__ == '__main__':
