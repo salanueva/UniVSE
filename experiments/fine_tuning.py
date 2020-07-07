@@ -8,7 +8,6 @@ from tqdm import tqdm
 
 import torch
 from torch import optim
-from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.utils import data
 from torchvision import transforms
 
@@ -59,6 +58,18 @@ def parse_args():
         type=int,
         default=128,
         help='Number of image and sentence pairs per batch.'
+    )
+    parser.add_argument(
+        '--momentum',
+        type=float,
+        default=0.95,
+        help='Momentum of SGD optimizer.'
+    )
+    parser.add_argument(
+        '--weight-decay',
+        type=float,
+        default=0.0,
+        help='Weight decay of SGD optimizer.'
     )
 
     parser.add_argument(
@@ -118,7 +129,7 @@ def main():
     model = model.to(device)
 
     # Observe that all parameters are being optimized
-    optimizer = optim.Adam(model.params, lr=args.lr)
+    optimizer = optim.SGD(model.params, lr=args.lr, weight_decay=args.weight_decay, momentum=args.momentum)
 
     print("C) Train model")
     train_params = {

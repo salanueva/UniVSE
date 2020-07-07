@@ -14,8 +14,7 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
         :param target_transform: A function/transform that takes in the target and transforms it.
         :param transforms: A function/transform that takes input sample and its target as entry and returns a
         transformed version.
-        :param split: Split you want to load: train, dev, test or restval (in restval option the training split is
-        included as well).
+        :param split: Split you want to load: train, dev, test or all.
         """
         super(VstsCaptions, self).__init__(root, transforms, transform, target_transform)
 
@@ -25,6 +24,15 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
             _, data, _ = ld.download_and_load_vsts_dataset(images=True, v2=True, root_path=root)
         elif split == "test":
             _, _, data = ld.download_and_load_vsts_dataset(images=True, v2=True, root_path=root)
+        elif split == "all":
+            data_1, data_2, data_3 = ld.download_and_load_vsts_dataset(images=True, v2=True, root_path=root)
+            data = {
+                "img_1": list(data_1["img_1"]) + list(data_2["img_1"]) + list(data_3["img_1"]),
+                "img_2": list(data_1["img_2"]) + list(data_2["img_2"]) + list(data_3["img_2"]),
+                "sent_1": list(data_1["sent_1"]) + list(data_2["sent_1"]) + list(data_3["sent_1"]),
+                "sent_2": list(data_1["sent_2"]) + list(data_2["sent_2"]) + list(data_3["sent_2"]),
+                "sim": list(data_1["sim"]) + list(data_2["sim"]) + list(data_3["sim"])
+            }
         else:
             raise NotImplementedError("Unknown split.")
 
