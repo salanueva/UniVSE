@@ -121,8 +121,8 @@ def main():
             else:
                 raise ValueError
 
-        embs1.append(current_emb_1)
-        embs2.append(current_emb_2)
+        embs1.append(current_emb_1.data.cpu().numpy()[0])
+        embs2.append(current_emb_2.data.cpu().numpy()[0])
         sims.append(sim.data.numpy()[0])
 
     embs1 = np.asarray(embs1)
@@ -138,8 +138,8 @@ def main():
     if not os.path.exists(args.output_path):
         os.mkdir(args.output_path)
 
-    np.save(args.output_path + '/' + args.model + '_' + args.modality + '_sent1.npy', embs1)
-    np.save(args.output_path + '/' + args.model + '_' + args.modality + '_sent2.npy', embs2)
+    np.save(args.output_path + '/' + args.model + '_' + args.modality + '_emb_1.npy', embs1)
+    np.save(args.output_path + '/' + args.model + '_' + args.modality + '_emb_2.npy', embs2)
     np.save(args.output_path + '/sim.npy', sims)
 
 
