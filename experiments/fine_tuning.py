@@ -214,6 +214,9 @@ def main():
         pred_sim_train = inference(train_gen, model, device)
         pred_sim_dev = inference(dev_gen, model, device)
         pred_sim_test = inference(test_gen, model, device)
+        print(len(pred_sim_train))
+        print(len(train_data.sim))
+        exit(0)
 
         print("E) Compute Pearson Correlations (between predicted similarities and ground truth)")
         pearson_values = [
