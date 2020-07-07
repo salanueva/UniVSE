@@ -86,12 +86,15 @@ class VstsCaptionsPrecomp(data.Dataset):
         if split == "train":
             sent_1 = sent_1[0:1338]
             sent_2 = sent_2[0:1338]
+            sim = sim[0:1338]
         elif split == "dev":
             sent_1 = sent_1[1338:2007]
             sent_2 = sent_2[1338:2007]
+            sim = sim[1338:2007]
         elif split == "test":
             sent_1 = sent_1[2007:2677]
             sent_2 = sent_2[2007:2677]
+            sim = sim[2007:2677]
         elif split != "all":
             raise ValueError
 
