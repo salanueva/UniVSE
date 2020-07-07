@@ -1,7 +1,10 @@
-from helper import load_data as ld
+import numpy as np
 import os
 from PIL import Image
+from torch.utils import data
 import torchvision
+
+from helper import load_data as ld
 
 
 class VstsCaptions(torchvision.datasets.vision.VisionDataset):
@@ -59,6 +62,54 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
             img_2, sent_2 = self.transforms(img_2, sent_2)
 
         return img_1, sent_1, img_2, sent_2, sim
+
+    def __len__(self):
+        return self.length
+
+
+class VstsCaptionsPrecomp(data.Dataset):
+
+    def __init__(self, file_1, file_2, file_sim, split="all"):
+        """
+        Dataloader for precomputed embeddings
+        :param file_1: numpy file with precomputed embeddings of sent_1 of each vSTS dataset's instance.
+        :param file_2: numpy file with precomputed embeddings of sent_2 of each vSTS dataset's instance.
+        :param file_sim: numpy file with similarities of each vSTS dataset's instance.
+        """
+        super(VstsCaptionsPrecomp, self).__init__(file_1, file_2, file_sim, split)
+
+        sent_1 = np.load(file_1)
+        sent_2 = np.load(file_2)
+        sim = np.load(file_sim)
+
+        if split == "train":
+            sent_1 = sent_1[0:1338]
+            sent_2 = sent_2[0:1338]
+        elif split == "dev":
+            sent_1 = sent_1[1338:2007]
+            sent_2 = sent_2[1338:2007]
+        elif split == "test":
+            sent_1 = sent_1[2007:2677]
+            sent_2 = sent_2[2007:2677]
+        elif split != "all":
+            raise ValueError
+
+        self.sent_1 = sent_1
+        self.sent_2 = sent_2
+        self.sim = sim
+
+        self.length = len(self.sim)
+
+    def __getitem__(self, index):
+        """
+        :param index: index
+        :return: tuple (emb_1, emb_2, sim).
+        """
+        emb_1 = self.sent_1[index]
+        emb_2 = self.sent_2[index]
+        sim = self.sim[index]
+
+        return emb_1, emb_2, sim
 
     def __len__(self):
         return self.length

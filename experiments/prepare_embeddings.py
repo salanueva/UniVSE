@@ -101,7 +101,7 @@ def main():
     embs1 = []
     embs2 = []
     sims = []
-    for batch in tqdm(generator, total=len(generator)):
+    for batch in tqdm(generator, total=len(generator), desc="Instances"):
 
         img_1, sent_1, img_2, sent_2, sim = batch
 
