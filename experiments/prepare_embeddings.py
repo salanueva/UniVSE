@@ -76,10 +76,10 @@ def main():
     if args.model == "vse++":
         raise NotImplementedError
     elif args.model == "simp_univse":
-        model = simp_univse.UniVSE(args.vocab_path)
+        model = simp_univse.UniVSE.from_filename(args.vocab_path)
         model.load_model(args.model_path)
     elif args.model == "univse":
-        model = univse.UniVSE(args.vocab_path)
+        model = univse.UniVSE.from_filename(args.vocab_path)
         model.load_model(args.model_path)
         model.vocabulary_encoder.add_graphs(args.graph_path)
     else:
