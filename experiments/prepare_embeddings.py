@@ -88,8 +88,7 @@ def main():
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
-
-    model.val_start()
+    model.eval()
 
     params = {
         'batch_size': 1,
