@@ -135,8 +135,8 @@ def main():
     print(f"Sim: {sims.shape}")
 
     # Save embedding
-    if not os.path.exists(args.output_dir):
-        os.mkdir(args.output_dir)
+    if not os.path.exists(args.output_path):
+        os.mkdir(args.output_path)
 
     np.save(args.output_path + '/' + args.model + '_' + args.modality + '_sent1.npy', embs1)
     np.save(args.output_path + '/' + args.model + '_' + args.modality + '_sent2.npy', embs2)

@@ -38,7 +38,7 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
 
         self.root = root
         self.data = data
-        self.length = len(self.data)
+        self.length = len(self.data["sim"])
 
     def __getitem__(self, index):
         """
