@@ -61,7 +61,7 @@ def parse_args():
         help='Numpy file with embeddings of sent_1 of each instance.'
     )
     parser.add_argument(
-        "--sent2-emb-fie",
+        "--sent2-emb-file",
         type=str,
         help='Numpy file with embeddings of sent_2 of each instance.'
     )
