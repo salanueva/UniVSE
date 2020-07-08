@@ -77,8 +77,8 @@ def inference(dataset, model, device, model_type="univse"):
             elif model_type == "simp_univse":
                 output_1 = model(img_1, [sent_1])
                 output_2 = model(img_2, [sent_2])
-                emb_1 = output_1["img_emb"]
-                emb_2 = output_2["img_emb"]
+                emb_1 = torch.cat([output_1["img_emb"], output_1["sent_emb"]], dim=0)
+                emb_2 = torch.cat([output_2["img_emb"], output_2["sent_emb"]], dim=0)
             else:
                 print("ERROR: model name unknown.")  # You shouldn't be able to reach here!
                 return

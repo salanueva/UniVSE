@@ -206,6 +206,7 @@ def main():
                     best_loss = running_loss
                     best_model_wts = copy.deepcopy(model.state_dict())
 
+    """
     model.load_state_dict(best_model_wts)
     torch.save(model.state_dict(), os.path.join(args.output_path, f"ft_model_lr{args.lr:.1E}.pth"))
 
@@ -218,6 +219,7 @@ def main():
     with open(os.path.join(args.output_path, "losses.pickle"), "wb") as f:
         losses = {"train": train_losses, "dev": dev_losses}
         pickle.dump(losses, f)
+    """
 
     if args.eval:
 
