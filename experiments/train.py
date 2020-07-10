@@ -222,12 +222,14 @@ def main():
                 sentences = list(sent)
                 embeddings = model(img, sentences)
 
+
                 time_start = time.time()
                 total_loss, _ = model.criterion(embeddings)
-                model.times["loss"] += time.time() - time_start
+                if not args.simple:
+                    model.times["loss"] += time.time() - time_start
 
                 # ####### DEBUG ######## #
-                if epoch == 1 and idx == 100:
+                if not args.simple and epoch == 1 and idx == 100:
                     with open("times.txt", "w") as t_file:
                         t_file.write(f" # EPOCH {epoch}\t# BATCH {idx} #\n")
                         t_file.write(f"Image:  {model.times['image'] * 1000 / model.times['n']} ms\n")
