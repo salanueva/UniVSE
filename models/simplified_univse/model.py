@@ -1,3 +1,4 @@
+import numpy as np
 import pickle
 import torch
 from torch.autograd import Variable
@@ -90,13 +91,24 @@ class CustomResNet152(nn.Module):
         self.dim = dim
         # Load pretrained resnet and delete its last two layers
         resnet = torchvision.models.resnet152(pretrained=True)
-        modules = list(resnet.children())[:-1]  # delete avg pool 2d + last fc layer from resnet
+        modules = list(resnet.children())[:-1]  # delete last fc layer from resnet
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
         # self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
-        self.conv = nn.Linear(2048, self.dim)
+        self.linear = nn.Linear(2048, self.dim)
         for param in self.resnet.parameters():
             param.requires_grad = train_resnet
+
+        self.init_weights()
+
+    def init_weights(self):
+        """
+        Initialize weights of the last linear layer
+        """
+        r = np.sqrt(6.) / np.sqrt(self.linear.in_features +
+                                  self.linear.out_features)
+        self.linear.weight.data.uniform_(-r, r)
+        self.linear.bias.data.fill_(0)
 
     def forward(self, x):
         """
@@ -109,7 +121,7 @@ class CustomResNet152(nn.Module):
         # Extract features from backbone
         features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048, 1, 1)
         features = torch.squeeze(torch.squeeze(features, dim=3), dim=2)  # (bs, 2048, 1, 1) -> (bs, 2048)
-        images = self.conv(features)  # (bs, 2048) -> (bs, 1024)
+        images = self.linear(features)  # (bs, 2048) -> (bs, 1024)
         images = f.normalize(images, dim=1, p=2)
 
         return images
@@ -117,7 +129,7 @@ class CustomResNet152(nn.Module):
 
 class UniVSE(nn.Module):
     """
-    Entire UniVSE model
+    Entire Simplified UniVSE model
     """
 
     def __init__(self, vocab_encoder, input_size=400, hidden_size=1024, grad_clip=2.0, rnn_layers=1, train_cnn=False):
