@@ -94,7 +94,7 @@ class CustomResNet152(nn.Module):
         modules = list(resnet.children())[:-1]  # delete last fc layer from resnet
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
-        # self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        # self.linear = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
         self.linear = nn.Linear(2048, self.dim)
         for param in self.resnet.parameters():
             param.requires_grad = train_resnet
@@ -162,7 +162,7 @@ class UniVSE(nn.Module):
         params = list(self.vocabulary_encoder.modif.parameters())
         params += list(self.object_encoder.parameters())
         params += list(self.neural_combiner.parameters())
-        params += list(self.image_encoder.conv.parameters())
+        params += list(self.image_encoder.linear.parameters())
         if train_cnn:
             params += list(self.image_encoder.resnet.parameters())
         self.params = params
@@ -218,7 +218,7 @@ class UniVSE(nn.Module):
 
         self.object_encoder.load_state_dict(model_data[0])
         self.neural_combiner.load_state_dict(model_data[1])
-        self.image_encoder.conv.load_state_dict(model_data[2])
+        self.image_encoder.linear.load_state_dict(model_data[2])
         if self.finetune_cnn and len(model_data) > 3:
             self.image_encoder.resnet.load_state_dict(model_data[3])
 
@@ -230,7 +230,7 @@ class UniVSE(nn.Module):
         model_data = [
             self.object_encoder.state_dict(),
             self.neural_combiner.state_dict(),
-            self.image_encoder.conv.state_dict()
+            self.image_encoder.linear.state_dict()
         ]
         if self.finetune_cnn:
             model_data.append(self.image_encoder.resnet.state_dict())
