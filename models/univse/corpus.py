@@ -236,7 +236,9 @@ class VocabularyEncoder(nn.Module):
                 )
                 for i in range(len(cur_obj))
                 for j in range(len(cur_obj[i]['modifiers']))
-                if cur_obj[i]['modifiers'][j]['dep'] == 'amod' or cur_obj[i]['modifiers'][j]['dep'] == 'nummod'
+                if self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower()]
+                == self.corpus.word2idx['<unk>'] or cur_obj[i]['modifiers'][j]['dep'] == 'amod' or
+                cur_obj[i]['modifiers'][j]['dep'] == 'nummod'
             ]
             r = [
                 [

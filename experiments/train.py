@@ -65,7 +65,7 @@ def parse_args():
         help='Initial learning rate of the fine-tuning process.'
     )
     parser.add_argument(
-        "--lr_update",
+        "--lr-update",
         type=int,
         default=15,
         help='Number of epochs to update the learning rate.'
