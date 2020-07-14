@@ -228,22 +228,20 @@ class VocabularyEncoder(nn.Module):
 
             cur_obj = graph['entities']
 
-            o = [self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()] for i in range(len(cur_obj))]
+            o = [self.corpus(nltk.word_tokenize(cur_obj[i]['head'])[0].lower()) for i in range(len(cur_obj))]
             a = [
                 (
-                    self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['head'])[0].lower()],
-                    self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower()]
+                    self.corpus(nltk.word_tokenize(cur_obj[i]['head'])[0].lower()),
+                    self.corpus(nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower())
                 )
                 for i in range(len(cur_obj))
                 for j in range(len(cur_obj[i]['modifiers']))
-                if self.corpus.word2idx[nltk.word_tokenize(cur_obj[i]['modifiers'][j]['span'])[0].lower()]
-                == self.corpus.word2idx['<unk>'] or cur_obj[i]['modifiers'][j]['dep'] == 'amod' or
-                cur_obj[i]['modifiers'][j]['dep'] == 'nummod'
+                if cur_obj[i]['modifiers'][j]['dep'] == 'amod' or cur_obj[i]['modifiers'][j]['dep'] == 'nummod'
             ]
             r = [
                 [
                     o[graph['relations'][i]['subject']],
-                    self.corpus.word2idx[nltk.word_tokenize(graph['relations'][i]['relation'])[0].lower()],
+                    self.corpus(nltk.word_tokenize(graph['relations'][i]['relation'])[0].lower()),
                     o[graph['relations'][i]['object']]
                 ]
                 for i in range(len(graph['relations']))
@@ -282,7 +280,7 @@ class VocabularyEncoder(nn.Module):
 
         # Parse captions in order to get ids of word/tokens
         caption_words = [["<start>"] + nltk.word_tokenize(cap.lower()) + ["<end>"] for cap in captions]
-        caption_word_ids = [[self.corpus.word2idx[w] for w in words] for words in caption_words]
+        caption_word_ids = [[self.corpus(w) for w in words] for words in caption_words]
         components["num_words"] = [len(words) for words in caption_words]
         components["max_words"] = max(components["num_words"])
         flatten_words = []
