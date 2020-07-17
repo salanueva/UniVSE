@@ -51,6 +51,12 @@ def parse_args():
         action='store_true',
         help='Restval instances will be used for training.'
     )
+    parser.add_argument(
+        '--train-cnn',
+        default=False,
+        action='store_true',
+        help='Fine-tune pretrained CNN during training.'
+    )
 
     parser.add_argument(
         '--epochs',
@@ -146,6 +152,7 @@ def main():
     elif args.model == "univse":
         if args.simple:
             model = simp_univse.UniVSE.from_filename(args.vocab_file)
+
         else:
             model = univse.UniVSE.from_filename(args.vocab_file)
             model.vocabulary_encoder.add_graphs(args.graph_file)
@@ -160,6 +167,7 @@ def main():
         return
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model.finetune_cnn = args.train_cnn
     model = model.to(device)
 
     # Observe that all parameters are being optimized
