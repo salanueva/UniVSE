@@ -151,11 +151,10 @@ def main():
         raise NotImplementedError
     elif args.model == "univse":
         if args.simple:
-            model = simp_univse.UniVSE.from_filename(args.vocab_file)
-
+            model = simp_univse.UniVSE.from_filename(args.vocab_file, train_cnn=args.train_cnn)
         else:
-            model = univse.UniVSE.from_filename(args.vocab_file)
-            model.vocabulary_encoder.add_graphs(args.graph_file)
+            model = univse.UniVSE.from_filename(args.vocab_file, train_cnn=args.train_cnn)
+            model.vocabulary_encoder.add_graphs(args.graph_file, train_cnn=args.train_cnn)
         # Randomize modifier
         model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100)
         model.vocabulary_encoder.modif.weight.data.uniform_(-0.1, 0.1)
@@ -167,7 +166,6 @@ def main():
         return
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    model.finetune_cnn = args.train_cnn
     model = model.to(device)
 
     # Observe that all parameters are being optimized
