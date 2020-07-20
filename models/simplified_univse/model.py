@@ -96,8 +96,17 @@ class CustomResNet152(nn.Module):
         # Add convolutional layer to project ResNet output into the UniVSE space
         # self.linear = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
         self.linear = nn.Linear(2048, self.dim)
-        for param in self.resnet.parameters():
-            param.requires_grad = train_resnet
+        if train_resnet:
+            for i, child in enumerate(self.resnet.children()):
+                if i < 7:
+                    for param in child.parameters():
+                        param.requires_grad = False
+                else:
+                    for param in child.parameters():
+                        param.requires_grad = True
+        else:
+            for param in self.resnet.parameters():
+                param.requires_grad = False
 
         self.init_weights()
 
