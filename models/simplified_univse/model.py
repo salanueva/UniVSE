@@ -219,7 +219,7 @@ class UniVSE(nn.Module):
         self.object_encoder.load_state_dict(model_data[0])
         self.neural_combiner.load_state_dict(model_data[1])
         self.image_encoder.linear.load_state_dict(model_data[2])
-        if self.finetune_cnn and len(model_data) > 3:
+        if len(model_data) > 3:
             self.image_encoder.resnet.load_state_dict(model_data[3])
 
     def save_model(self, model_file):
