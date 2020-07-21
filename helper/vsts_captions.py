@@ -50,7 +50,7 @@ class VstsCaptions(torchvision.datasets.vision.VisionDataset):
         """
         img_1 = self.data["img_1"][index]
         sent_1 = self.data["sent_1"][index]
-        img_2 = self.data["img_1"][index]
+        img_2 = self.data["img_2"][index]
         sent_2 = self.data["sent_2"][index]
         sim = self.data["sim"][index]
 
