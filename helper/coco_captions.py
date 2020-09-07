@@ -16,7 +16,7 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
         :param target_transform: A function/transform that takes in the target and transforms it.
         :param transforms: A function/transform that takes input sample and its target as entry and returns a
         transformed version.
-        :param split: Split you want to load: train, dev, test or restval (in restval option the training split is
+        :param split: Split you want to load: train, dev, test, tiny or restval (in restval option the training split is
         included as well).
         """
         super(CocoCaptions, self).__init__(root, transforms, transform, target_transform)
@@ -36,6 +36,8 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
                 self.ids = list(np.load('data/coco_dev_ids.npy'))
             elif split == "test":
                 self.ids = list(np.load('data/coco_test_ids.npy'))
+            elif split == "tiny":
+                self.ids = list(np.load('data/coco_train_ids.npy'))[:100]
             else:
                 raise ValueError
             self.bp = len(self.ids)

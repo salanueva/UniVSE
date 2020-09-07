@@ -46,7 +46,6 @@ class VocabularyEncoder(nn.Module):
         """
         super(VocabularyEncoder, self).__init__()
 
-        self.parser = sng_parser.Parser('spacy', model='en')
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.corpus = Corpus()

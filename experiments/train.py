@@ -51,6 +51,13 @@ def parse_args():
         action='store_true',
         help='Restval instances will be used for training.'
     )
+
+    parser.add_argument(
+        '--tiny',
+        default=False,
+        action='store_true',
+        help='A tiny sample of training instances will be used for both training and validation'
+    )
     parser.add_argument(
         '--train-cnn',
         default=False,
@@ -136,15 +143,18 @@ def main():
     print("A) Load data")
     transform = transforms.Compose([transforms.Resize(255), transforms.CenterCrop(224), transforms.ToTensor()])
 
-    if args.restval:
+    if args.tiny:
+        train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform, split="tiny")
+        dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="tiny")
+    elif args.restval:
         train_data = CocoCaptions(
             (args.train_img_path, args.dev_img_path), (args.train_ann_file, args.dev_ann_file),
             transform=transform, split="restval"
         )
+        dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="dev")
     else:
         train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform, split="train")
-
-    dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="dev")
+        dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="dev")
 
     print("B) Load model")
     if args.model == "vse++":
