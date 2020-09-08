@@ -229,16 +229,23 @@ class UniVSELoss(nn.Module):
         values, each one representing the loss value of all objects, attributes, relations,
         components and sentences, respectively.
         """
-        l_sent = self.contrastive_loss(embeddings["img_emb"], embeddings["sent_emb"])
-        l_comp = self.contrastive_loss(embeddings["img_emb"], embeddings["comp_emb"])
 
-        l_obj = self.local_loss(embeddings["img_feat_emb"], embeddings["obj_emb"], embeddings["neg_obj_emb"])
+        n_obj = np.sum(np.array([tensor.size(0) for tensor in embeddings["obj_emb"] if tensor is not None]))
+        n_attr = np.sum(np.array([tensor.size(0) for tensor in embeddings["attr_emb"] if tensor is not None]))
+        n_rel = np.sum(np.array([tensor.size(0) for tensor in embeddings["rel_emb"] if tensor is not None]))
+
+        n_sent = embeddings["sent_emb"].size(0)
+
+        l_sent = self.contrastive_loss(embeddings["img_emb"], embeddings["sent_emb"]) / n_sent
+        l_comp = self.contrastive_loss(embeddings["img_emb"], embeddings["comp_emb"]) / n_sent
+
+        l_obj = self.local_loss(embeddings["img_feat_emb"], embeddings["obj_emb"], embeddings["neg_obj_emb"]) / n_obj
 
         l_attr_nouns = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"], embeddings["neg_attr_n_emb"])
         l_attr_attributes = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"],
                                             embeddings["neg_attr_a_emb"])
 
-        l_attr = l_attr_nouns + l_attr_attributes
+        l_attr = (l_attr_nouns / n_attr + l_attr_attributes / n_attr) / 2
 
         # Choose at most one relation from each sentence randomly
         img_emb_samp = []
@@ -251,9 +258,11 @@ class UniVSELoss(nn.Module):
         img_emb_samp = torch.cat(img_emb_samp, dim=0)
         rel_emb_samp = torch.cat(rel_emb_samp, dim=0)
 
+        n_rel_others = len(rel_emb_samp)
+
         l_rel_others = self.contrastive_loss(img_emb_samp, rel_emb_samp, unidirectional=True)
         l_rel_mutation = self.global_loss(embeddings["img_emb"], embeddings["rel_emb"], embeddings["neg_rel_emb"])
-        l_rel = l_rel_others + l_rel_mutation
+        l_rel = (l_rel_others / n_rel_others + l_rel_mutation / n_rel) / 2
 
         total_loss = l_sent + self.n_c * l_comp + self.n_r * l_rel + self.n_a * l_attr + self.n_o * l_obj
         other_loss = [float(elem.data.cpu().numpy()) for elem in [l_obj, l_attr, l_rel, l_comp, l_sent]]

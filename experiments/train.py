@@ -240,7 +240,6 @@ def main():
 
                 time_start = time.time()
                 total_loss, other_loss = model.criterion(embeddings)
-                print(other_loss)
                 if not args.simple:
                     model.times["loss"] += time.time() - time_start
 

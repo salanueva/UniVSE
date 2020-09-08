@@ -43,7 +43,7 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
             self.bp = len(self.ids)
 
         if split == "tiny":
-            self.length = 100
+            self.length = 1536
         else:
             self.length = len(self.ids)
 
