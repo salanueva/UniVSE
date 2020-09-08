@@ -109,17 +109,6 @@ class CustomResNet152(nn.Module):
             for param in self.resnet.parameters():
                 param.requires_grad = False
 
-        self.init_weights()
-
-    def init_weights(self):
-        """
-        Initialize weights of the last linear layer
-        """
-        r = np.sqrt(6.) / np.sqrt(self.conv.in_features +
-                                  self.conv.out_features)
-        self.conv.weight.data.uniform_(-r, r)
-        self.conv.bias.data.fill_(0)
-
     def forward(self, x):
         """
         Forward pass of the image encoder
