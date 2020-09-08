@@ -145,7 +145,7 @@ def main():
 
     if args.tiny:
         train_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform, split="tiny")
-        dev_data = CocoCaptions(args.dev_img_path, args.dev_ann_file, transform=transform, split="tiny")
+        dev_data = CocoCaptions(args.train_img_path, args.train_ann_file, transform=transform, split="tiny")
     elif args.restval:
         train_data = CocoCaptions(
             (args.train_img_path, args.dev_img_path), (args.train_ann_file, args.dev_ann_file),
