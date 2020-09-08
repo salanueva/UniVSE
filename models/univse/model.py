@@ -115,10 +115,10 @@ class CustomResNet152(nn.Module):
         """
         Initialize weights of the last linear layer
         """
-        r = np.sqrt(6.) / np.sqrt(self.linear.in_features +
-                                  self.linear.out_features)
-        self.linear.weight.data.uniform_(-r, r)
-        self.linear.bias.data.fill_(0)
+        r = np.sqrt(6.) / np.sqrt(self.conv.in_features +
+                                  self.conv.out_features)
+        self.conv.weight.data.uniform_(-r, r)
+        self.conv.bias.data.fill_(0)
 
     def forward(self, x):
         """
