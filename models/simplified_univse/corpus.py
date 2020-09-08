@@ -9,7 +9,6 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from helper import sng_parser
 
 
 class Corpus(object):
@@ -78,9 +77,9 @@ class VocabularyEncoder(nn.Module):
 
         if isinstance(word_ids[0], int):
             stack_basic = torch.stack([
-                self.basic[idx].to(self.device)
+                self.basic[idx]
                 for idx in word_ids
-            ])
+            ]).to(self.device)
             stack_modif = self.modif(torch.tensor(word_ids).to(self.device))
             stack = torch.cat([stack_basic, stack_modif], dim=1)
         elif isinstance(word_ids[0], tuple):

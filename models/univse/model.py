@@ -1,3 +1,4 @@
+import numpy as np
 import pickle
 import time
 import torch
@@ -96,8 +97,28 @@ class CustomResNet152(nn.Module):
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
         self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
-        for param in self.resnet.parameters():
-            param.requires_grad = train_resnet
+        if train_resnet:
+            for i, child in enumerate(self.resnet.children()):
+                if i < 7:
+                    for param in child.parameters():
+                        param.requires_grad = False
+                else:
+                    for param in child.parameters():
+                        param.requires_grad = True
+        else:
+            for param in self.resnet.parameters():
+                param.requires_grad = False
+
+        self.init_weights()
+
+    def init_weights(self):
+        """
+        Initialize weights of the last linear layer
+        """
+        r = np.sqrt(6.) / np.sqrt(self.linear.in_features +
+                                  self.linear.out_features)
+        self.linear.weight.data.uniform_(-r, r)
+        self.linear.bias.data.fill_(0)
 
     def forward(self, x):
         """
@@ -220,7 +241,7 @@ class UniVSE(nn.Module):
         self.object_encoder.load_state_dict(model_data[0])
         self.neural_combiner.load_state_dict(model_data[1])
         self.image_encoder.conv.load_state_dict(model_data[2])
-        if self.finetune_cnn and len(model_data) > 3:
+        if len(model_data) > 3:
             self.image_encoder.resnet.load_state_dict(model_data[3])
 
     def save_model(self, model_file):
@@ -239,7 +260,7 @@ class UniVSE(nn.Module):
         with open(model_file, "wb") as out_f:
             pickle.dump(model_data, out_f)
 
-    def to_device(self, device):
+    def change_device(self, device):
         """
         Set model to cpu or gpu
         :param device: torch.device() object
