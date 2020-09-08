@@ -232,13 +232,13 @@ class UniVSELoss(nn.Module):
         l_sent = self.contrastive_loss(embeddings["img_emb"], embeddings["sent_emb"])
         l_comp = self.contrastive_loss(embeddings["img_emb"], embeddings["comp_emb"])
 
-        # l_obj = self.local_loss(embeddings["img_feat_emb"], embeddings["obj_emb"], embeddings["neg_obj_emb"])
+        l_obj = self.local_loss(embeddings["img_feat_emb"], embeddings["obj_emb"], embeddings["neg_obj_emb"])
 
-        # l_attr_nouns = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"], embeddings["neg_attr_n_emb"])
-        # l_attr_attributes = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"],
-        #                                    embeddings["neg_attr_a_emb"])
+        l_attr_nouns = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"], embeddings["neg_attr_n_emb"])
+        l_attr_attributes = self.local_loss(embeddings["img_feat_emb"], embeddings["attr_emb"],
+                                            embeddings["neg_attr_a_emb"])
 
-        # l_attr = l_attr_nouns + l_attr_attributes
+        l_attr = l_attr_nouns + l_attr_attributes
 
         # Choose at most one relation from each sentence randomly
         img_emb_samp = []
@@ -255,9 +255,7 @@ class UniVSELoss(nn.Module):
         l_rel_mutation = self.global_loss(embeddings["img_emb"], embeddings["rel_emb"], embeddings["neg_rel_emb"])
         l_rel = l_rel_others + l_rel_mutation
 
-        # total_loss = l_sent + self.n_c * l_comp + self.n_r * l_rel + self.n_a * l_attr + self.n_o * l_obj
-        total_loss = l_sent + self.n_c * l_comp + self.n_r * l_rel
-        # other_loss = [float(elem.data.cpu().numpy()) for elem in [l_obj, l_attr, l_rel, l_comp, l_sent]]
-        other_loss = 0.0
+        total_loss = l_sent + self.n_c * l_comp + self.n_r * l_rel + self.n_a * l_attr + self.n_o * l_obj
+        other_loss = [float(elem.data.cpu().numpy()) for elem in [l_obj, l_attr, l_rel, l_comp, l_sent]]
 
         return total_loss, other_loss

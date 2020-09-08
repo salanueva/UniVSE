@@ -239,7 +239,8 @@ def main():
                 embeddings = model(img, sentences)
 
                 time_start = time.time()
-                total_loss, _ = model.criterion(embeddings)
+                total_loss, other_loss = model.criterion(embeddings)
+                print(other_loss)
                 if not args.simple:
                     model.times["loss"] += time.time() - time_start
 
