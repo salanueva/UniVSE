@@ -37,12 +37,15 @@ class CocoCaptions(torchvision.datasets.vision.VisionDataset):
             elif split == "test":
                 self.ids = list(np.load('data/coco_test_ids.npy'))
             elif split == "tiny":
-                self.ids = list(np.load('data/coco_train_ids.npy'))[:100]
+                self.ids = list(np.load('data/coco_train_ids.npy'))
             else:
                 raise ValueError
             self.bp = len(self.ids)
 
-        self.length = len(self.ids)
+        if split == "tiny":
+            self.length = 100
+        else:
+            self.length = len(self.ids)
 
     def __getitem__(self, index):
         """
