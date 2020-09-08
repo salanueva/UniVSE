@@ -56,7 +56,7 @@ def parse_args():
         '--tiny',
         default=False,
         action='store_true',
-        help='A tiny sample of training instances will be used for both training and validation'
+        help='A tiny sample of training instances will be used for both training and validation.'
     )
     parser.add_argument(
         '--train-cnn',
@@ -164,7 +164,7 @@ def main():
             model = simp_univse.UniVSE.from_filename(args.vocab_file, train_cnn=args.train_cnn)
         else:
             model = univse.UniVSE.from_filename(args.vocab_file, train_cnn=args.train_cnn)
-            model.vocabulary_encoder.add_graphs(args.graph_file, train_cnn=args.train_cnn)
+            model.vocabulary_encoder.add_graphs(args.graph_file)
         # Randomize modifier
         model.vocabulary_encoder.modif = torch.nn.Embedding(len(model.vocabulary_encoder.corpus), 100)
         model.vocabulary_encoder.modif.weight.data.uniform_(-0.1, 0.1)
@@ -237,7 +237,6 @@ def main():
 
                 sentences = list(sent)
                 embeddings = model(img, sentences)
-
 
                 time_start = time.time()
                 total_loss, _ = model.criterion(embeddings)
