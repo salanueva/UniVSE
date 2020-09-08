@@ -97,6 +97,7 @@ class CustomResNet152(nn.Module):
         self.resnet = nn.Sequential(*modules)
         # Add convolutional layer to project ResNet output into the UniVSE space
         self.conv = nn.Conv2d(2048, self.dim, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        self.linear = nn.Linear(2048, self.dim)
         if train_resnet:
             for i, child in enumerate(self.resnet.children()):
                 if i < 7:
@@ -109,6 +110,17 @@ class CustomResNet152(nn.Module):
             for param in self.resnet.parameters():
                 param.requires_grad = False
 
+        self.init_weights()
+
+    def init_weights(self):
+        """
+        Initialize weights of the last linear layer
+        """
+        r = np.sqrt(6.) / np.sqrt(self.linear.in_features +
+                                  self.linear.out_features)
+        self.linear.weight.data.uniform_(-r, r)
+        self.linear.bias.data.fill_(0)
+
     def forward(self, x):
         """
         Forward pass of the image encoder
@@ -118,8 +130,11 @@ class CustomResNet152(nn.Module):
         """
 
         # Extract features from backbone
-        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 1024, 7, 7)
-        features = self.conv(features).view(-1, self.dim, 49)  # (bs, 1024, 7, 7) -> (bs, 1024, 49)
+        features = self.resnet(x)  # (bs, 3, 224, 224) -> (bs, 2048, 7, 7)
+        # CHANGED
+        features = self.linear(features.permute((0, 2, 3, 1))).view(-1, 49, self.dim) # (bs, 2048, 7, 7) -> (bs, 49, 1024)
+        features = features.permute((0, 2, 1))  # (bs, 49, 1024) -> (bs, 1024, 49)
+        # features = self.conv(features).view(-1, self.dim, 49)  # (bs, 2048, 7, 7) -> (bs, 1024, 49)
 
         # Max k-pooling (k=10)
         index = features.topk(10, dim=2)[1].sort(dim=2)[0]
