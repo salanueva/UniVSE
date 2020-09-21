@@ -347,14 +347,14 @@ class UniVSE(nn.Module):
         # Get embeddings from those ids with the VocabularyEncoder
         embeddings["sent_emb"] = self.vocabulary_encoder(components["words"]).to(self.device)
 
-        if components["obj"] is not None:
+        if len(components["obj"]) > 0:
             embeddings["obj_emb"] = self.vocabulary_encoder(components["obj"]).to(self.device)
             embeddings["neg_obj_emb"] = self.vocabulary_encoder(components["neg_obj"]).to(self.device)
-        if components["attr"] is not None:
+        if len(components["attr"]) > 0:
             embeddings["attr_emb"] = self.vocabulary_encoder(components["attr"]).to(self.device)
             embeddings["neg_attr_n_emb"] = self.vocabulary_encoder(components["neg_attr_n"]).to(self.device)
             embeddings["neg_attr_a_emb"] = self.vocabulary_encoder(components["neg_attr_a"]).to(self.device)
-        if components["rel"] is not None:
+        if len(components["rel"]) > 0:
             embeddings["rel_emb"] = self.vocabulary_encoder(components["rel"]).to(self.device)
             embeddings["neg_rel_emb"] = self.vocabulary_encoder(components["neg_rel"]).to(self.device)
 
@@ -365,14 +365,14 @@ class UniVSE(nn.Module):
         # Use Object Encoder to compute their embeddings in the UniVSE space
         embeddings["sent_emb"] = self.object_encoder(embeddings["sent_emb"])
 
-        if components["obj"] is not None:
+        if len(components["obj"]) > 0:
             embeddings["obj_emb"] = self.object_encoder(embeddings["obj_emb"])
             embeddings["neg_obj_emb"] = self.object_encoder(embeddings["neg_obj_emb"])
-        if components["attr"] is not None:
+        if len(components["attr"]) > 0:
             embeddings["attr_emb"] = self.object_encoder(embeddings["attr_emb"])
             embeddings["neg_attr_n_emb"] = self.object_encoder(embeddings["neg_attr_n_emb"])
             embeddings["neg_attr_a_emb"] = self.object_encoder(embeddings["neg_attr_a_emb"])
-        if components["rel"] is not None:
+        if len(components["rel"]) > 0:
             embeddings["rel_emb"] = self.object_encoder(embeddings["rel_emb"])
             embeddings["neg_rel_emb"] = self.object_encoder(embeddings["neg_rel_emb"])
 
@@ -381,7 +381,7 @@ class UniVSE(nn.Module):
         time_start = time_end
 
         # Relations and captions must be processed more with the Neural Combiner (RNN)
-        if components["rel"] is not None:
+        if len(components["rel"]) > 0:
             embeddings["rel_emb"] = self.neural_combiner(
                 embeddings["rel_emb"], torch.tensor([3] * embeddings["rel_emb"].size(0))
             )
@@ -409,11 +409,11 @@ class UniVSE(nn.Module):
             end_o += n_o
             end_a += n_a
             end_r += n_r
-            if components["num_obj"] != 0:
+            if len(components["obj"]) > 0:
                 aggregation[i] += embeddings["obj_emb"][start_o:end_o].view(-1, self.hidden_size).sum(dim=0).view(-1)
-            if components["num_attr"] != 0:
+            if len(components["attr"]) > 0:
                 aggregation[i] += embeddings["attr_emb"][start_a:end_a].view(-1, self.hidden_size).sum(dim=0).view(-1)
-            if components["num_rel"] != 0:
+            if len(components["rel"]) > 0:
                 aggregation[i] += embeddings["rel_emb"][start_r:end_r].view(-1, self.hidden_size).sum(dim=0).view(-1)
             start_o = end_o
             start_a = end_a
@@ -428,12 +428,12 @@ class UniVSE(nn.Module):
         embeddings["cap_emb"] = self.alpha * embeddings["sent_emb"] + (1 - self.alpha) * embeddings["comp_emb"]
 
         # Unflatten objects, attributes and relations (both positives and negatives), in order to ease loss computations
-        if components["obj"] is not None:
+        if len(components["obj"]) > 0:
             embeddings["obj_emb"] = self.unflatten_pos_embeddings(embeddings["obj_emb"], components["num_obj"])
             embeddings["neg_obj_emb"] = self.unflatten_neg_embeddings(
                 embeddings["neg_obj_emb"], components["num_obj"], components["num_neg_obj"]
             )
-        if components["attr"] is not None:
+        if len(components["attr"]) > 0:
             embeddings["attr_emb"] = self.unflatten_pos_embeddings(embeddings["attr_emb"], components["num_attr"])
             embeddings["neg_attr_n_emb"] = self.unflatten_neg_embeddings(
                 embeddings["neg_attr_n_emb"], components["num_attr"], components["num_neg_attr_n"]
@@ -441,7 +441,7 @@ class UniVSE(nn.Module):
             embeddings["neg_attr_a_emb"] = self.unflatten_neg_embeddings(
                 embeddings["neg_attr_a_emb"], components["num_attr"], components["num_neg_attr_a"]
             )
-        if components["rel"] is not None:
+        if len(components["rel"]) > 0:
             embeddings["rel_emb"] = self.unflatten_pos_embeddings(embeddings["rel_emb"], components["num_obj"])
             embeddings["neg_rel_emb"] = self.unflatten_neg_embeddings(
                 embeddings["neg_rel_emb"], components["num_rel"], components["num_neg_rel"]
