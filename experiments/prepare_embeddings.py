@@ -28,9 +28,9 @@ def parse_args():
     parser.add_argument(
         "--modality",
         type=str,
-        choices=["img", "sent"],
+        choices=["img", "sent", "cap", "sent+img", "cap+img"],
         default="sent",
-        help='Name of the modality you want to precompute. Choices are: "img" or "sent".'
+        help='Name of the modality you want to precompute. Choices are: "img", "sent", "cap" "sent+img" or "cap+img".'
     )
 
     parser.add_argument(
@@ -72,6 +72,14 @@ def main():
 
     all_data = vsts.VstsCaptions(root=args.data_path, transform=transform, split="all")
 
+    if "cap" in args.modality and args.model != "univse":
+        if "img" in args.modality:
+            args.modality = "sent+img"
+        else:
+            args.modality = "sent"
+        print(f"WARNING: modality of embedding changed from 'cap' to 'sent', as {args.model} has only sentence "
+              f"embeddings as output.")
+
     print("B) Load model")
     if args.model == "vse++":
         raise NotImplementedError
@@ -111,15 +119,18 @@ def main():
         if args.modality == "img":
             current_emb_1 = embeddings_1["img_emb"]
             current_emb_2 = embeddings_2["img_emb"]
-        else:
-            if args.model == "univse":
-                current_emb_1 = embeddings_1["cap_emb"]
-                current_emb_2 = embeddings_2["cap_emb"]
-            elif args.model == "simp_univse":
-                current_emb_1 = embeddings_1["sent_emb"]
-                current_emb_2 = embeddings_2["sent_emb"]
-            else:
-                raise ValueError
+        elif args.modality == "cap":
+            current_emb_1 = embeddings_1["cap_emb"]
+            current_emb_2 = embeddings_2["cap_emb"]
+        elif args.modality == "sent":
+            current_emb_1 = embeddings_1["sent_emb"]
+            current_emb_2 = embeddings_2["sent_emb"]
+        elif args.modality == "cap+img":
+            current_emb_1 = embeddings_1["cap_emb"]
+            current_emb_2 = embeddings_2["cap_emb"]
+        else:  # if args.modality == "sent+img":
+            current_emb_1 = embeddings_1["sent_emb"]
+            current_emb_2 = embeddings_2["sent_emb"]
 
         embs1.append(current_emb_1.data.cpu().numpy()[0])
         embs2.append(current_emb_2.data.cpu().numpy()[0])
