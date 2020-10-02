@@ -50,6 +50,12 @@ def parse_args():
         help='Number of image and sentence pairs per batch.'
     )
     parser.add_argument(
+        '--input-size',
+        type=int,
+        default=1024,
+        help="Input embedding's size."
+    )
+    parser.add_argument(
         '--hidden-size',
         type=int,
         default=100,
@@ -132,7 +138,9 @@ def main():
     print("B) Load model")
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-    model = models.SiameseRegressor(hidden_dim=args.hidden_size, dropout=args.dropout, batch_norm=args.batch_norm)
+    model = models.SiameseRegressor(
+        input_dim=args.input_size, hidden_dim=args.hidden_size, dropout=args.dropout, batch_norm=args.batch_norm
+    )
     model = model.to(device)
 
     # Observe that all parameters are being optimized
