@@ -9,7 +9,7 @@ from torch.utils import data
 from torchvision import transforms
 
 sys.path.append(os.getcwd())
-from helper import vsts_captions as vsts
+from data import vsts_dataset as vsts
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 

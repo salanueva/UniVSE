@@ -4,7 +4,7 @@ from PIL import Image
 from torch.utils import data
 import torchvision
 
-from helper import load_data as ld
+from data import vsts_loader as ld
 
 
 class VstsCaptions(torchvision.datasets.vision.VisionDataset):

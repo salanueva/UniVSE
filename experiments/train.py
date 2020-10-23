@@ -16,8 +16,8 @@ from torch.utils import data
 from torchvision import transforms
 
 sys.path.append(os.getcwd())
-from helper.coco_captions import CocoCaptions
-from helper import image_text_retrieval as itr, plotter
+from data.coco_dataset import CocoCaptions
+from helper import retrieval_score as itr, plotter
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 # from models.vsepp import model as vsepp

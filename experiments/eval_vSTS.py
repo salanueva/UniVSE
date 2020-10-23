@@ -9,7 +9,7 @@ from tqdm import tqdm
 import torch
 
 sys.path.append(os.getcwd())
-from helper import load_data as ld
+from data import vsts_loader as ld
 from models.simplified_univse import model as simp_univse
 from models.univse import model as univse
 

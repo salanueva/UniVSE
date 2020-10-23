@@ -1,8 +1,6 @@
 import argparse
 import copy
-import matplotlib.pyplot as plt
 import os
-import pickle
 import sys
 from tqdm import tqdm
 from scipy.stats import pearsonr
@@ -12,7 +10,7 @@ from torch import optim
 from torch.utils import data
 
 sys.path.append(os.getcwd())
-from helper import plotter, vsts_captions as vsts
+from data import vsts_dataset as vsts
 from models import vsts_models as models
 
 

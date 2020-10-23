@@ -117,7 +117,7 @@ def download_and_load_vsts_dataset(images=False, v2=False, root_path="."):
                                                                    "visual_sts.all.nopar.tsv"))
 
         # delete_extracted_files()
-        if os.path.isfile(os.path.join(".", "visual_sts.tar.gz")):
+        if os.path.isfile(os.path.join("../helper", "visual_sts.tar.gz")):
             os.remove("visual_sts.tar.gz")
 
         return vsts_data

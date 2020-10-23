@@ -3,7 +3,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from helper import image_text_retrieval as itr
+from helper import retrieval_score as itr
 
 
 def parse_args():

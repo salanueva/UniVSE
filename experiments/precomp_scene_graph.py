@@ -7,7 +7,7 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from helper import load_data as ld
+from data import vsts_loader as ld
 from helper import sng_parser
 
 

@@ -12,7 +12,7 @@ from torchvision import transforms
 from tqdm import tqdm
 
 sys.path.append(os.getcwd())
-from helper.coco_captions import CocoCaptions
+from data.coco_dataset import CocoCaptions
 from models.vsepp.loss import order_sim
 from models.univse import model as univse
 from models.simplified_univse import model as simp_univse
