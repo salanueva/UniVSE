@@ -154,6 +154,10 @@ def main():
                      'test': 'snli_ve_test.jsonl',
                      'train': 'snli_ve_train.jsonl'}
 
+    path_aux = os.path.join(root, "snli_ve")
+    if not os.path.exists(path_aux):
+        os.mkdir(path_aux)
+
     print('*** SNLI-VE Generation Start! ***')
     all_data, image_index_dict = prepare_all_data(snli_root, snli_files)
     split_data(all_data, image_index_dict, split_root, split_files, snli_ve_root, snli_ve_files)
