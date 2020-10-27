@@ -1,3 +1,5 @@
+from abc import ABC
+
 import numpy as np
 import pickle
 import time

@@ -1,6 +1,8 @@
 import argparse
 import copy
+from matplotlib import pyplot as plt
 import os
+import pickle
 import sys
 from tqdm import tqdm
 from scipy.stats import pearsonr
@@ -11,16 +13,17 @@ from torch.utils import data
 
 sys.path.append(os.getcwd())
 from data import vsts_dataset as vsts
+from helper import plotter
 from models import vsts_models as models
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Finetune regressor for vSTS task using precomputed embeddings.')
+    parser = argparse.ArgumentParser(description='Fine-tune regressor for vSTS task using precomputed embeddings.')
     parser.add_argument(
         '--plot',
         default=False,
         action='store_true',
-        help='Use it if you want to create plots of R@k values and loss values during training.'
+        help='Use it if you want to create plots of loss values during fine-tuning.'
     )
     parser.add_argument(
         '--eval',
@@ -33,7 +36,7 @@ def parse_args():
         '--epochs',
         type=int,
         default=300,
-        help='Number of epochs for the pre-training process.'
+        help='Number of epochs for the fine-tuning process.'
     )
     parser.add_argument(
         "--lr",
@@ -212,7 +215,6 @@ def main():
                     best_loss = running_loss
                     best_model_wts = copy.deepcopy(model.state_dict())
 
-    """
     model.load_state_dict(best_model_wts)
     torch.save(model.state_dict(), os.path.join(args.output_path, f"ft_model_lr{args.lr:.1E}.pth"))
 
@@ -225,7 +227,6 @@ def main():
     with open(os.path.join(args.output_path, "losses.pickle"), "wb") as f:
         losses = {"train": train_losses, "dev": dev_losses}
         pickle.dump(losses, f)
-    """
 
     if args.eval:
 
@@ -248,6 +249,7 @@ def main():
             pearsonr(pred_sim_test, test_data.sim)[0]
         ]
 
+        print(f"\t\t\t\tTRAIN\tDEV\tTEST")
         print(f"Pearson values: {pearson_values[0]:.4f}\t{pearson_values[1]:.4f}\t{pearson_values[2]:.4f}")
 
 

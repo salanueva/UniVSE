@@ -1,6 +1,7 @@
 from collections import OrderedDict
 import numpy as np
 import os
+import pickle
 import sys
 import torch
 import torch.nn as nn
@@ -12,6 +13,7 @@ import torch.backends.cudnn as cudnn
 from torch.nn.utils.clip_grad import clip_grad_norm
 
 sys.path.append(os.getcwd())
+from models.vsepp.corpus import VocabularyEncoder
 from models.vsepp.loss import ContrastiveLoss
 
 
@@ -194,22 +196,17 @@ class EncoderImagePrecomp(nn.Module):
 # RNN Based Language Model
 class EncoderText(nn.Module):
 
-    def __init__(self, vocab_size, word_dim, embed_size, num_layers,
-                 use_abs=False):
+    def __init__(self, vocab_file, word_dim, embed_size, num_layers, use_abs=False):
         super(EncoderText, self).__init__()
         self.use_abs = use_abs
         self.embed_size = embed_size
 
-        # word embedding
-        self.embed = nn.Embedding(vocab_size, word_dim)
+        self.vocabulary = VocabularyEncoder(vocab_file)
 
         # caption embedding
         self.rnn = nn.GRU(word_dim, embed_size, num_layers, batch_first=True)
 
         self.init_weights()
-
-    def init_weights(self):
-        self.embed.weight.data.uniform_(-0.1, 0.1)
 
     def forward(self, x, lengths):
         """Handles variable size captions
@@ -237,14 +234,16 @@ class EncoderText(nn.Module):
         return out
 
 
-class VSE(object):
+class VSE(nn.Module):
     """
     rkiros/uvs model
     """
 
-    def __init__(self, vocab_size, word_dim=300, embed_size=1024, lr=2e-3, num_layers=1, finetune=False, cnn_type="resnet152"):
+    def __init__(self, vocab_size, word_dim=300, embed_size=1024, lr=2e-3, num_layers=1, finetune=False,
+                 cnn_type="resnet152"):
         # tutorials/09 - Image Captioning
         # Build Models
+        super().__init__()
         self.grad_clip = 2.0
         self.img_enc = image_encoder('coco', 2048, embed_size,
                                      finetune, cnn_type,
@@ -270,15 +269,63 @@ class VSE(object):
 
         self.optimizer = torch.optim.Adam(params, lr=lr)
 
-        self.Eiters = 0
+    @classmethod
+    def from_captions(cls, captions, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
+                      train_cnn=False):
+        """
+        Initializes the Unified Visual Semantic Embeddings model and creates vocabulary
+        encoder from scratch given a list of sentences and a file with GloVe embeddings
+        :param captions: list of sentences/captions
+        :param glove_file: path of the file with GloVe embeddings
+        :param input_size: length of the concatenation of basic and modif embeddings
+        :param hidden_size: length of embeddings in UniVSE space
+        :param grad_clip: gradient clipping value
+        :param rnn_layers: number of layers of the neural combiner
+        :param train_cnn: Image encoder's backbone is trainable if set to True
+        """
+        vocab_encoder = corpus.VocabularyEncoder(captions, glove_file)
+        return cls(vocab_encoder, input_size, hidden_size, grad_clip, rnn_layers, train_cnn)
 
-    def state_dict(self):
-        state_dict = [self.img_enc.state_dict(), self.txt_enc.state_dict()]
-        return state_dict
+    @classmethod
+    def from_filename(cls, vocab_file, input_size=400, hidden_size=1024, grad_clip=0.0, rnn_layers=1,
+                      train_cnn=False):
+        """
+        Initializes the Unified Visual Semantic Embeddings model and creates vocabulary
+        encoder from scratch given a list of sentences and a file with GloVe embeddings
+        :param vocab_file: path of the pickle file with VocabularyEncoder object
+        :param input_size: length of the concatenation of basic and modif embeddings
+        :param hidden_size: length of embeddings in UniVSE space
+        :param grad_clip: gradient clipping value
+        :param rnn_layers: number of layers of the neural combiner
+        :param train_cnn: Image encoder's backbone is trainable if set to True
+        """
+        vocab_encoder = corpus.VocabularyEncoder(None, None)
+        vocab_encoder.load_corpus(vocab_file)
+        return cls(vocab_encoder, input_size, hidden_size, grad_clip, rnn_layers, train_cnn)
 
-    def load_state_dict(self, state_dict):
-        self.img_enc.load_state_dict(state_dict[0])
-        self.txt_enc.load_state_dict(state_dict[1])
+    def load_model(self, model_file):
+        """
+        Load model weights
+        :param model_file: file with weights of the model
+        """
+        with open(model_file, "rb") as in_f:
+            model_data = pickle.load(in_f)
+
+        self.img_enc.load_state_dict(model_data[0])
+        self.txt_enc.load_state_dict(model_data[1])
+
+    def save_model(self, model_file):
+        """
+        Save model weights
+        :param model_file: string of output filename
+        """
+        model_data = [
+            self.img_enc.state_dict(),
+            self.txt_enc.state_dict()
+        ]
+
+        with open(model_file, "wb") as out_f:
+            pickle.dump(model_data, out_f)
 
     def train_start(self):
         """switch to train mode
@@ -292,8 +339,9 @@ class VSE(object):
         self.img_enc.eval()
         self.txt_enc.eval()
 
-    def forward_emb(self, images, captions, lengths, volatile=False):
-        """Compute the image and caption embeddings
+    def forward(self, images, captions, lengths, volatile=False):
+        """
+        Compute the image and caption embeddings
         """
         # Set mini-batch dataset
         images = Variable(images, volatile=volatile)
@@ -307,19 +355,16 @@ class VSE(object):
         cap_emb = self.txt_enc(captions, lengths)
         return img_emb, cap_emb
 
+    # USE IT IN TRAINING
     def forward_loss(self, img_emb, cap_emb, **kwargs):
         """Compute the loss given pairs of image and caption embeddings
         """
         loss = self.criterion(img_emb, cap_emb)
-        self.logger.update('Le', loss.data[0], img_emb.size(0))
         return loss
 
     def train_emb(self, images, captions, lengths, ids=None, *args):
         """One training step given images and captions.
         """
-        self.Eiters += 1
-        self.logger.update('Eit', self.Eiters)
-        self.logger.update('lr', self.optimizer.param_groups[0]['lr'])
 
         # compute the embeddings
         img_emb, cap_emb = self.forward_emb(images, captions, lengths)

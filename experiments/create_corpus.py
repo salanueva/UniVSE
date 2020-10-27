@@ -6,9 +6,10 @@ import os
 import sys
 
 sys.path.append(os.getcwd())
-from data import vsts_loader as ld
+from data import vsts_downloader as ld
 from models.simplified_univse import corpus as simp_univse
 from models.univse import corpus as univse
+from models.vsepp import corpus as vsepp
 
 # IMPORTANT: As it is, this script creates vocabulary based on MS-Coco and vSTS datasets
 
@@ -25,10 +26,17 @@ def parse_args():
         help='COCO split used to create corpus.'
     )
     parser.add_argument(
+        '--model',
+        type=str,
+        choices=["vse++", "univse"],
+        default="univse",
+        help='Choose model: "vse++" or "univse".'
+    )
+    parser.add_argument(
         '--simple',
         default=False,
         action='store_true',
-        help='Use it if you want to use a simplified version of UniVSE. False by default.'
+        help='Use it if you want to use the simplified version of UniVSE. False by default and does not affect vse++.'
     )
     parser.add_argument(
         "--filename",
@@ -81,10 +89,15 @@ if __name__ == "__main__":
             list(data_4["sent_1"]) + list(data_4["sent_2"]) + \
             list(data_5["sent_1"]) + list(data_5["sent_2"])
 
-    if args.simple:
-        voc_encoder = simp_univse.VocabularyEncoder(sentences, glove_dir)
+    if args.model == "vse++":
+        voc_encoder = vsepp.VocabularyEncoder(sentences)
     else:
-        voc_encoder = univse.VocabularyEncoder(sentences, glove_dir, graph_dir)
-        print(f"Num Objects: {len(voc_encoder.neg_obj)}")
+        if args.simple:
+            voc_encoder = simp_univse.VocabularyEncoder(sentences, glove_dir)
+        else:
+            voc_encoder = univse.VocabularyEncoder(sentences, glove_dir)
+            voc_encoder.add_graphs(graph_dir)
 
-    voc_encoder.save_corpus(os.path.join('/gscratch/users/asalaberria009/models/univse', args.filename))
+    print(f"Num Objects: {len(voc_encoder.neg_obj)}")
+
+    voc_encoder.save_corpus(os.path.join('/gscratch/users/asalaberria009/output/', args.filename))

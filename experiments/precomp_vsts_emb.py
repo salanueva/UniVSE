@@ -126,11 +126,11 @@ def main():
             current_emb_1 = embeddings_1["sent_emb"]
             current_emb_2 = embeddings_2["sent_emb"]
         elif args.modality == "cap+img":
-            current_emb_1 = embeddings_1["cap_emb"]
-            current_emb_2 = embeddings_2["cap_emb"]
+            current_emb_1 = torch.cat((embeddings_1["cap_emb"], embeddings_1["img_emb"]), dim=1)
+            current_emb_2 = torch.cat((embeddings_2["cap_emb"], embeddings_2["img_emb"]), dim=1)
         else:  # if args.modality == "sent+img":
-            current_emb_1 = embeddings_1["sent_emb"]
-            current_emb_2 = embeddings_2["sent_emb"]
+            current_emb_1 = torch.cat((embeddings_1["sent_emb"], embeddings_1["img_emb"]), dim=1)
+            current_emb_2 = torch.cat((embeddings_2["sent_emb"], embeddings_2["img_emb"]), dim=1)
 
         embs1.append(current_emb_1.data.cpu().numpy()[0])
         embs2.append(current_emb_2.data.cpu().numpy()[0])
