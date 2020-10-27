@@ -28,9 +28,9 @@ def parse_args():
     parser.add_argument(
         "--modality",
         type=str,
-        choices=["img", "sent", "cap", "sent+img", "cap+img"],
+        choices=["img", "sent", "cap", "comp", "sent+img", "cap+img", "comp+img"],
         default="sent",
-        help='Name of the modality you want to precompute. Choices are: "img", "sent", "cap" "sent+img" or "cap+img".'
+        help='Name of the modality you want to precompute. Choices are: "img", "sent", "cap","comp", "sent+img", "cap+img" or "comp+img".'
     )
 
     parser.add_argument(
@@ -82,6 +82,14 @@ def main():
         print(f"WARNING: modality of embedding changed from 'cap' to 'sent', as {args.model} has only sentence "
               f"embeddings as output.")
 
+    if "comp" in args.modality and args.model != "univse":
+        if "comp" in args.modality:
+            args.modality = "comp+img"
+        else:
+            args.modality = "comp"
+        print(f"WARNING: modality of embedding changed from 'comp' to 'sent', as {args.model} has only sentence "
+              f"embeddings as output.")
+
     print("B) Load model")
     if args.model == "vse++":
         raise NotImplementedError
@@ -122,10 +130,14 @@ def main():
             current_emb = embeddings["cap_emb"]
         elif args.modality == "sent":
             current_emb = embeddings["sent_emb"]
+        elif args.modality == "comp":
+            current_emb = embeddings["comp_emb"]
         elif args.modality == "cap+img":
             current_emb = torch.cat((embeddings["cap_emb"], embeddings["img_emb"]), dim=1)
-        else:  # if args.modality == "sent+img":
+        elif args.modality == "sent+img":
             current_emb = torch.cat((embeddings["sent_emb"], embeddings["img_emb"]), dim=1)
+        else:  # if args.modality == "comp+img":
+            current_emb = torch.cat((embeddings["comp_emb"], embeddings["img_emb"]), dim=1)
 
         embs.append(current_emb.data.cpu().numpy()[0])
         labels.append(label.data.numpy()[0])
