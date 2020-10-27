@@ -134,7 +134,7 @@ def main():
         print(f"ERROR: {args.download_path} must exist.")
         exit(0)
 
-    subprocess.call(["sh", f"./download_snli.sh {args.download_path}"])
+    # subprocess.call(["sh", f"./download_snli.sh {args.download_path}"])
 
     # SNLI-VE generation resource: SNLI dataset
     root = Path(args.download_path)
