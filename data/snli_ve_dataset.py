@@ -20,7 +20,8 @@ class SnliVECaptions(torchvision.datasets.vision.VisionDataset):
         :param transforms: A function/transform that takes input sample and its target as entry and returns a
         transformed version.
         """
-        super(SnliVECaptions, self).__init__(data_root)
+        super(SnliVECaptions, self).__init__(data_root, transforms, transform, target_transform)
+
 
         snli_ve_files = {'dev': 'snli_ve_dev.jsonl',
                          'test': 'snli_ve_test.jsonl',

@@ -32,6 +32,12 @@ def parse_args():
         default="sent",
         help='Name of the modality you want to precompute. Choices are: "img", "sent", "cap","comp", "sent+img", "cap+img" or "comp+img".'
     )
+    parser.add_argument(
+        "--batch-size",
+        default=1,
+        type=int,
+        help='Batch size used while computing embeddings.'
+    )
 
     parser.add_argument(
         "--data-path",
@@ -109,9 +115,9 @@ def main():
     model.eval()
 
     params = {
-        'batch_size': 1,
+        'batch_size': args.batch_size,
         'shuffle': False,
-        'num_workers': 6
+        'num_workers': 0 
     }
     generator = data.DataLoader(all_data, **params)
 
@@ -139,8 +145,9 @@ def main():
         else:  # if args.modality == "comp+img":
             current_emb = torch.cat((embeddings["comp_emb"], embeddings["img_emb"]), dim=1)
 
-        embs.append(current_emb.data.cpu().numpy()[0])
-        labels.append(label.data.numpy()[0])
+        for i in range(embeddings["cap_emb"].size()[0]):
+            embs.append(current_emb.data.cpu().numpy()[i])
+            labels.append(label.data.numpy()[i])
 
     embs = np.asarray(embs)
     labels = np.asarray(labels)
